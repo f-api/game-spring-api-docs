@@ -11,14 +11,14 @@ info:
 
     | 메서드 | 경로 | 성공 | 하는 일 |
     | --- | --- | ---: | --- |
-    | `POST` | `/games` | `201` | 게임과 시작 덱 생성 |
-    | `GET` | `/games` | `200` | 게임 요약 목록 (ID 내림차순) |
-    | `GET` | `/games/{gameId}` | `200` | 게임 상세와 전체 덱 |
-    | `PATCH` | `/games/{gameId}` | `204` | 플레이어 이름 변경 |
-    | `PUT` | `/games/{gameId}/progress` | `200` | 진행 필드와 전체 덱 저장 |
-    | `DELETE` | `/games/{gameId}` | `204` | 게임과 덱 삭제 |
-    | `GET` | `/games/search` | `200` | 조건 검색과 페이징 |
-    | `GET` | `/games/stats` | `200` | 전체 기록 집계 |
+    | `POST` | [`/games`](#tag/게임/operation/createGame) | `201` | 게임과 시작 덱 생성 |
+    | `GET` | [`/games`](#tag/게임/operation/getGames) | `200` | 게임 요약 목록 (ID 내림차순) |
+    | `GET` | [`/games/{gameId}`](#tag/게임/operation/getGame) | `200` | 게임 상세와 전체 덱 |
+    | `PATCH` | [`/games/{gameId}`](#tag/게임/operation/renameGame) | `204` | 플레이어 이름 변경 |
+    | `PUT` | [`/games/{gameId}/progress`](#tag/게임/operation/updateProgress) | `200` | 진행 필드와 전체 덱 저장 |
+    | `DELETE` | [`/games/{gameId}`](#tag/게임/operation/deleteGame) | `204` | 게임과 덱 삭제 |
+    | `GET` | [`/games/search`](#tag/검색/operation/searchGames) | `200` | 조건 검색과 페이징 |
+    | `GET` | [`/games/stats`](#tag/검색/operation/getStats) | `200` | 전체 기록 집계 |
 
     ## 오류 응답
 
@@ -44,46 +44,49 @@ info:
     클라이언트가 정한다. 시작 덱은 `STRIKE` 2장, `HEART_PIERCE`, `GUARD`, `MIST_KNOT`, `QUICK_SLASH`,
     `WARDING_SLASH`, `BLOOD_RUNE`, `MEND` 9장이다.
 
-    | 값 | 카드 |
-    | --- | --- |
-    | `STRIKE` | 베기 |
-    | `GUARD` | 밤의 장막 |
-    | `MIST_KNOT` | 안개 매듭 |
-    | `HEAVY_BLOW` | 내리베기 |
-    | `TENDON_SEVER` | 힘줄 끊기 |
-    | `TWIN_SLASH` | 쌍베기 |
-    | `QUICK_SLASH` | 빠른 베기 |
-    | `IRON_WALL` | 안개 장막 |
-    | `BLOOD_RUNE` | 흡수 |
-    | `ECHO_GUARD` | 피의 방패 |
-    | `SUNDER` | 난도질 |
-    | `MEND` | 피의 갈증 |
-    | `COUNTER_SIGIL` | 혈흔 각인 |
-    | `ARCANE_BOLT` | 혈창 |
-    | `WARDING_SLASH` | 안개 베기 |
-    | `RUNE_SURGE` | 피의 계약 |
-    | `SHATTER_BOLT` | 혈흔 절개 |
-    | `EXECUTION_RUNE` | 혈폭풍 |
-    | `BLOOD_AMPLIFY` | 피의 증폭 |
-    | `LAST_STAND` | 불사의 밤 |
-    | `DECAPITATE` | 참수 |
-    | `NIGHT_DANCE` | 밤의 검무 |
-    | `MIST_FORM` | 안개 형상 |
-    | `NIGHT_FEAST` | 밤의 만찬 |
-    | `SCARLET_MEMORY` | 붉은 기억 |
-    | `BLOOD_OFFERING` | 피의 공물 |
-    | `SEALED_WOUND` | 닫히지 않는 상처 |
-    | `THIRSTING_BLOW` | 갈증의 일격 |
-    | `BLOOD_TOLL` | 피의 대가 |
-    | `NIGHT_TITHE` | 밤의 징수 |
-    | `CRIMSON_RECLAIM` | 붉은 회수 |
-    | `HEART_PIERCE` | 심장찌르기 |
-    | `SHATTER_ARMOR` | 갑주 파쇄 |
-    | `VOID_NIGHT` | 무형의 밤 |
-    | `NIGHT_AFTERIMAGE` | 밤의 잔영 |
-    | `KILLING_MOMENTUM` | 살의의 고조 |
-    | `LINGERING_THUNDER` | 잔뢰 |
-    | `SECOND_HEART` | 두 번째 심장 |
+    <details class="card-types">
+    <summary>카드 타입 전체 목록 (38종) 펼치기</summary>
+    <table><thead><tr><th>값</th><th>카드</th></tr></thead><tbody>
+    <tr><td><code>STRIKE</code></td><td>베기</td></tr>
+    <tr><td><code>GUARD</code></td><td>밤의 장막</td></tr>
+    <tr><td><code>MIST_KNOT</code></td><td>안개 매듭</td></tr>
+    <tr><td><code>HEAVY_BLOW</code></td><td>내리베기</td></tr>
+    <tr><td><code>TENDON_SEVER</code></td><td>힘줄 끊기</td></tr>
+    <tr><td><code>TWIN_SLASH</code></td><td>쌍베기</td></tr>
+    <tr><td><code>QUICK_SLASH</code></td><td>빠른 베기</td></tr>
+    <tr><td><code>IRON_WALL</code></td><td>안개 장막</td></tr>
+    <tr><td><code>BLOOD_RUNE</code></td><td>흡수</td></tr>
+    <tr><td><code>ECHO_GUARD</code></td><td>피의 방패</td></tr>
+    <tr><td><code>SUNDER</code></td><td>난도질</td></tr>
+    <tr><td><code>MEND</code></td><td>피의 갈증</td></tr>
+    <tr><td><code>COUNTER_SIGIL</code></td><td>혈흔 각인</td></tr>
+    <tr><td><code>ARCANE_BOLT</code></td><td>혈창</td></tr>
+    <tr><td><code>WARDING_SLASH</code></td><td>안개 베기</td></tr>
+    <tr><td><code>RUNE_SURGE</code></td><td>피의 계약</td></tr>
+    <tr><td><code>SHATTER_BOLT</code></td><td>혈흔 절개</td></tr>
+    <tr><td><code>EXECUTION_RUNE</code></td><td>혈폭풍</td></tr>
+    <tr><td><code>BLOOD_AMPLIFY</code></td><td>피의 증폭</td></tr>
+    <tr><td><code>LAST_STAND</code></td><td>불사의 밤</td></tr>
+    <tr><td><code>DECAPITATE</code></td><td>참수</td></tr>
+    <tr><td><code>NIGHT_DANCE</code></td><td>밤의 검무</td></tr>
+    <tr><td><code>MIST_FORM</code></td><td>안개 형상</td></tr>
+    <tr><td><code>NIGHT_FEAST</code></td><td>밤의 만찬</td></tr>
+    <tr><td><code>SCARLET_MEMORY</code></td><td>붉은 기억</td></tr>
+    <tr><td><code>BLOOD_OFFERING</code></td><td>피의 공물</td></tr>
+    <tr><td><code>SEALED_WOUND</code></td><td>닫히지 않는 상처</td></tr>
+    <tr><td><code>THIRSTING_BLOW</code></td><td>갈증의 일격</td></tr>
+    <tr><td><code>BLOOD_TOLL</code></td><td>피의 대가</td></tr>
+    <tr><td><code>NIGHT_TITHE</code></td><td>밤의 징수</td></tr>
+    <tr><td><code>CRIMSON_RECLAIM</code></td><td>붉은 회수</td></tr>
+    <tr><td><code>HEART_PIERCE</code></td><td>심장찌르기</td></tr>
+    <tr><td><code>SHATTER_ARMOR</code></td><td>갑주 파쇄</td></tr>
+    <tr><td><code>VOID_NIGHT</code></td><td>무형의 밤</td></tr>
+    <tr><td><code>NIGHT_AFTERIMAGE</code></td><td>밤의 잔영</td></tr>
+    <tr><td><code>KILLING_MOMENTUM</code></td><td>살의의 고조</td></tr>
+    <tr><td><code>LINGERING_THUNDER</code></td><td>잔뢰</td></tr>
+    <tr><td><code>SECOND_HEART</code></td><td>두 번째 심장</td></tr>
+    </tbody></table>
+    </details>
 servers:
   - url: http://localhost:8080
 tags:

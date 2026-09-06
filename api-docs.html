@@ -69,6 +69,15 @@
     .api-content h3 { color: var(--ink-soft) !important; font-size: 13px !important; letter-spacing: .06em; }
     .api-content p, .api-content li, .api-content td { line-height: 1.8 !important; color: var(--ink); }
     /* 마크다운 표만 스타일링 (스키마 표는 Redoc 기본 유지) */
+    /* 접히는 목록(카드 타입) */
+    .api-content details.card-types { border: 1px solid var(--line); border-radius: 12px; background: #fff; margin: 12px 0 0; }
+    .api-content details.card-types > summary { cursor: pointer; padding: 10px 14px; font-weight: 600; color: var(--rose); list-style: none; }
+    .api-content details.card-types > summary::-webkit-details-marker { display: none; }
+    .api-content details.card-types > summary::before { content: "▸"; display: inline-block; margin-right: 8px; transition: transform .15s; }
+    .api-content details.card-types[open] > summary::before { transform: rotate(90deg); }
+    .api-content details.card-types > table { margin: 0 14px 14px; }
+    .api-content details.card-types td, .api-content details.card-types th { padding: 6px 14px; border-bottom: 1px solid var(--line); text-align: left; }
+    .api-content details.card-types th { background: var(--blossom); }
     .api-content .redoc-markdown table { display: table !important; width: auto !important; border-collapse: separate !important; border-spacing: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
     .api-content .redoc-markdown table th { background: var(--blossom) !important; color: var(--ink) !important; border: none !important; border-bottom: 1px solid var(--line) !important; font-weight: 600; }
     .api-content .redoc-markdown table td { border: none !important; border-bottom: 1px solid var(--line) !important; }
