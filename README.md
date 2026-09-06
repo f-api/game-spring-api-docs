@@ -1,3 +1,5 @@
-# 게임 API 문서
+# 붉은 달의 성채
 
-정적 배포용 저장소입니다. `api-docs.html`이 `openapi.yaml`을 읽어 렌더링합니다.
+- 게임: https://nhahan.github.io/crimson-citadel/
+- 에셋 갤러리: https://nhahan.github.io/crimson-citadel/#assets
+- API 문서: https://f-api.github.io/game-spring-basic-api-docs/api-docs.html
