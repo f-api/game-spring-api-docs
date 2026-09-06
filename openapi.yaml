@@ -453,7 +453,7 @@ components:
           type: string
           description: |
             카드 타입. 서버는 저장만 하고 해석하지 않으며, 값의 목록은 게임 클라이언트가 정한다.
-            현재 쓰이는 값은 "카드 타입" 절에 있다. 공백만으로 된 값은 허용하지 않는다.
+            현재 쓰이는 값은 [카드 타입](#section/카드-타입) 절에 있다. 공백만으로 된 값은 허용하지 않는다.
           minLength: 1
           example: STRIKE
         acquiredFloor:
@@ -475,7 +475,7 @@ components:
           example: 31
         cardType:
           type: string
-          description: 카드 타입. 값의 목록은 "카드 타입" 절에 있다.
+          description: 카드 타입. 값의 목록은 [카드 타입](#section/카드-타입) 절에 있다.
           example: STRIKE
         acquiredFloor:
           type: integer
