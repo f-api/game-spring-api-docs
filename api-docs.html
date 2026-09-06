@@ -101,6 +101,16 @@
     /* ── 우측 패널 (라이트) ─────────────────────── */
     .redoc-wrap [class*="RightPanel"], .redoc-wrap [class*="right-panel"] { background: var(--panel) !important; }
     .redoc-wrap [class*="RightPanel"] h3, .redoc-wrap [class*="right-panel"] h3 { color: var(--ink) !important; }
+    /* 샘플 도구 버튼(Copy · Expand all · Collapse all)을 버튼답게 */
+    .redoc-wrap div:has(> button + button) { display: flex; gap: 6px; justify-content: flex-end; margin-bottom: 8px; }
+    .redoc-wrap div > button:has(+ button), .redoc-wrap div > button + button {
+      appearance: none; cursor: pointer; padding: 4px 12px !important; border-radius: 999px !important;
+      border: 1px solid var(--blossom-deep) !important; background: #fff !important; color: var(--rose) !important;
+      font-size: 12px !important; font-weight: 600 !important; line-height: 1.6 !important; margin: 0 !important;
+      transition: background .15s, color .15s;
+    }
+    .redoc-wrap div > button:has(+ button):hover, .redoc-wrap div > button + button:hover { background: var(--rose) !important; color: #fff !important; border-color: var(--rose) !important; }
+    .redoc-wrap div > button:has(+ button) > div, .redoc-wrap div > button + button > div { display: inline; color: inherit !important; font-size: inherit !important; }
     .react-tabs__tab-list { border-bottom: 1px solid #dfe8dc !important; }
     .react-tabs__tab {
       background: #fff !important; color: var(--ink-soft) !important; border: 1px solid #e3ebe0 !important;
@@ -124,7 +134,7 @@
     expand-responses="200,201"
     required-props-first
     path-in-middle-panel
-    json-sample-expand-level="3"
+    json-sample-expand-level="1"
     schema-expansion-level="all"
     theme='{
       "colors": {

@@ -40,36 +40,36 @@ info:
 
     ## 데이터 모델
 
-    요청과 응답에 쓰이는 객체다. 각 API 문서의 스키마에서도 같은 내용을 펼쳐 볼 수 있다.
+    요청과 응답에 쓰이는 객체다. 각 API 설명에서도 같은 내용을 펼쳐 볼 수 있다.
 
-    ### CreateRequest
+    ### 게임 생성 요청
     <SchemaDefinition schemaRef="#/components/schemas/CreateRequest" />
 
-    ### RunCardRequest
+    ### 카드 (요청)
     <SchemaDefinition schemaRef="#/components/schemas/RunCardRequest" />
 
-    ### ProgressRequest
+    ### 진행 저장 요청
     <SchemaDefinition schemaRef="#/components/schemas/ProgressRequest" />
 
-    ### RenameRequest
+    ### 이름 변경 요청
     <SchemaDefinition schemaRef="#/components/schemas/RenameRequest" />
 
-    ### GameSummaryResponse
+    ### 게임 요약
     <SchemaDefinition schemaRef="#/components/schemas/GameSummaryResponse" />
 
-    ### GameDetailResponse
+    ### 게임 상세
     <SchemaDefinition schemaRef="#/components/schemas/GameDetailResponse" />
 
-    ### CardResponse
+    ### 카드
     <SchemaDefinition schemaRef="#/components/schemas/CardResponse" />
 
-    ### GamePageResponse
+    ### 검색 결과 페이지
     <SchemaDefinition schemaRef="#/components/schemas/GamePageResponse" />
 
-    ### GameStatsResponse
+    ### 기록 집계
     <SchemaDefinition schemaRef="#/components/schemas/GameStatsResponse" />
 
-    ### ErrorResponse
+    ### 오류 응답
     <SchemaDefinition schemaRef="#/components/schemas/ErrorResponse" />
 servers:
   - url: http://localhost:8080
@@ -267,8 +267,14 @@ paths:
         - name: status
           in: query
           required: false
+          description: 이 상태인 실행만 포함
           schema:
-            $ref: '#/components/schemas/GameStatus'
+            type: string
+            enum: [PLAYING, CLEARED, FAILED]
+            x-enumDescriptions:
+              PLAYING: 진행 중
+              CLEARED: 10층까지 클리어
+              FAILED: 도중에 실패
         - name: minFloor
           in: query
           required: false
@@ -418,16 +424,8 @@ components:
           - { id: 60, cardType: SHATTER_BOLT, acquiredFloor: 2 }
 
   schemas:
-    GamePhase:
-      type: string
-      description: 실행이 멈춰 있는 단계
-      enum: [BATTLE, REWARD, FINISHED]
-    GameStatus:
-      type: string
-      description: 실행의 결과 상태
-      enum: [PLAYING, CLEARED, FAILED]
-
     RunCardRequest:
+      title: 카드 (요청)
       type: object
       required: [cardType, acquiredFloor]
       properties:
@@ -444,6 +442,7 @@ components:
           example: 0
 
     CardResponse:
+      title: 카드
       type: object
       required: [id, cardType, acquiredFloor]
       properties:
@@ -459,6 +458,7 @@ components:
           example: 0
 
     CreateRequest:
+      title: 게임 생성 요청
       type: object
       required: [playerName, deck]
       properties:
@@ -476,6 +476,7 @@ components:
             $ref: '#/components/schemas/RunCardRequest'
 
     RenameRequest:
+      title: 이름 변경 요청
       type: object
       required: [playerName]
       properties:
@@ -487,6 +488,7 @@ components:
           example: 붉은 순례자
 
     ProgressRequest:
+      title: 진행 저장 요청
       type: object
       required: [currentHp, currentFloor, phase, status, deck]
       properties:
@@ -501,9 +503,25 @@ components:
           maximum: 10
           example: 5
         phase:
-          $ref: '#/components/schemas/GamePhase'
+          type: string
+          description: |
+            실행이 멈춰 있는 단계.
+            `BATTLE`는 전투 중, `REWARD`는 보상 카드를 고르는 중, `FINISHED`는 여정이 끝난 상태다.
+          enum: [BATTLE, REWARD, FINISHED]
+          x-enumDescriptions:
+            BATTLE: 전투 중. 다시 불러오면 해당 층의 전투가 이어진다.
+            REWARD: 보상 카드를 고르는 중. 시작 직후와 각 전투 승리 뒤에 머문다.
+            FINISHED: 여정이 끝났다. status가 CLEARED 또는 FAILED다.
         status:
-          $ref: '#/components/schemas/GameStatus'
+          type: string
+          description: |
+            실행의 결과 상태.
+            `PLAYING`은 진행 중, `CLEARED`는 최상층까지 클리어, `FAILED`는 도중에 쓰러진 상태다.
+          enum: [PLAYING, CLEARED, FAILED]
+          x-enumDescriptions:
+            PLAYING: 진행 중. 이어서 플레이할 수 있다.
+            CLEARED: 10층까지 모두 클리어했다.
+            FAILED: 도중에 HP가 0이 되어 실패했다.
         deck:
           type: array
           description: 저장할 전체 덱. 기존 카드를 모두 대체한다.
@@ -512,6 +530,7 @@ components:
             $ref: '#/components/schemas/RunCardRequest'
 
     GameSummaryResponse:
+      title: 게임 요약
       type: object
       description: |
         덱을 제외한 실행 요약. `deckSize`, `createdAt`, `updatedAt`은 선택 필드이며,
@@ -532,9 +551,25 @@ components:
           type: integer
           example: 61
         phase:
-          $ref: '#/components/schemas/GamePhase'
+          type: string
+          description: |
+            실행이 멈춰 있는 단계.
+            `BATTLE`는 전투 중, `REWARD`는 보상 카드를 고르는 중, `FINISHED`는 여정이 끝난 상태다.
+          enum: [BATTLE, REWARD, FINISHED]
+          x-enumDescriptions:
+            BATTLE: 전투 중. 다시 불러오면 해당 층의 전투가 이어진다.
+            REWARD: 보상 카드를 고르는 중. 시작 직후와 각 전투 승리 뒤에 머문다.
+            FINISHED: 여정이 끝났다. status가 CLEARED 또는 FAILED다.
         status:
-          $ref: '#/components/schemas/GameStatus'
+          type: string
+          description: |
+            실행의 결과 상태.
+            `PLAYING`은 진행 중, `CLEARED`는 최상층까지 클리어, `FAILED`는 도중에 쓰러진 상태다.
+          enum: [PLAYING, CLEARED, FAILED]
+          x-enumDescriptions:
+            PLAYING: 진행 중. 이어서 플레이할 수 있다.
+            CLEARED: 10층까지 모두 클리어했다.
+            FAILED: 도중에 HP가 0이 되어 실패했다.
         deckSize:
           type: integer
           description: 저장된 덱의 카드 수
@@ -551,6 +586,7 @@ components:
           example: '2026-09-03T19:02:45'
 
     GameDetailResponse:
+      title: 게임 상세
       allOf:
         - $ref: '#/components/schemas/GameSummaryResponse'
         - type: object
@@ -563,6 +599,7 @@ components:
                 $ref: '#/components/schemas/CardResponse'
 
     GamePageResponse:
+      title: 검색 결과 페이지
       type: object
       description: ID 내림차순 페이징 응답
       required: [content, page, size, totalElements, totalPages, hasNext]
@@ -592,6 +629,7 @@ components:
           example: true
 
     GameStatsResponse:
+      title: 기록 집계
       type: object
       required: [totalGames, playingGames, clearedGames, failedGames, highestFloor, clearRate]
       properties:
@@ -621,6 +659,7 @@ components:
           example: 50
 
     ErrorResponse:
+      title: 오류 응답
       type: object
       description: |
         오류 응답 형식이다. `message`는 사람이 읽을 수 있는 원인 설명이며, 있으면 게임
