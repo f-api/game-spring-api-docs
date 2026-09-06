@@ -493,9 +493,9 @@ components:
           enum: [easy, normal, hard]
           default: normal
           x-enumDescriptions:
-            easy: 몹 피해가 낮고 허기로 죽지 않는다
-            normal: 기본 난이도
-            hard: 몹 피해가 높고 허기로 죽을 수 있다
+            easy: 쉬움
+            normal: 보통. 기본값
+            hard: 어려움
         nickname:
           type: string
           description: 만든 사람의 닉네임. 등록된 플레이어여야 하며 월드 소유자가 된다. 생략하면 소유자 없는 월드.
