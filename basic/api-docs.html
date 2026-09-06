@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Crimson Citadel API</title>
+  <style>
+    :root {
+      --ivory: #fffcf8;
+      --blossom: #fdeef1;
+      --blossom-deep: #f9d9e0;
+      --rose: #e08a9b;
+      --rose-deep: #c86b7e;
+      --sage: #cfe6d4;
+      --sage-deep: #6fae87;
+      --butter: #f7e4a6;
+      --butter-deep: #d9b04f;
+      --sky: #cfe0f4;
+      --sky-deep: #7aa3d6;
+      --lilac: #e4d8f3;
+      --lilac-deep: #a48cd0;
+      --ink: #4a4046;
+      --ink-soft: #857a80;
+      --line: #f3dfe3;
+      --panel: #f4f7f2;
+      --code-bg: #eef3ea;
+    }
+    html, body { margin: 0; background: var(--ivory); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", Pretendard, "Segoe UI", "Noto Sans KR", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── 사이드 메뉴 ───────────────────────────── */
+    .menu-content {
+      background: linear-gradient(180deg, #fdeef1 0%, #fff6ee 100%) !important;
+      border-right: 1px solid var(--line);
+    }
+    .menu-content a[href*="redocly.com"] { display: none !important; }
+    .menu-content [role="search"] { padding: 14px 16px 10px !important; }
+    .menu-content [role="search"] svg { left: 28px !important; top: 24px !important; width: 14px !important; height: 16px !important; }
+    .menu-content [role="search"] .search-input {
+      width: calc(100% - 0px) !important; margin: 0 !important; box-sizing: border-box;
+      padding: 9px 12px 9px 34px !important;
+      background: #fff !important; color: var(--ink) !important;
+      border: 1px solid var(--blossom-deep) !important; border-radius: 12px !important;
+      font-size: 14px !important;
+    }
+    .menu-content [role="search"] .search-input:focus { outline: none; border-color: var(--rose) !important; box-shadow: 0 0 0 3px #fbe3e8; }
+    .menu-content [role="search"] .search-input::placeholder { color: #b9aab0; }
+    .menu-content label { color: var(--ink) !important; font-weight: 500; margin: 2px 10px !important; border-radius: 10px; }
+    .menu-content li > label:hover { background: #fbe3e8 !important; }
+    .menu-content li > label.active { background: #fff !important; color: var(--rose-deep) !important; box-shadow: 0 1px 2px rgba(200,107,126,.15); }
+    .menu-content label > span[type] { border-radius: 6px !important; font-weight: 700 !important; }
+    .menu-content ul ul label { font-weight: 400; }
+    .menu-content > div:last-child { border-top: 1px solid var(--line); background: transparent !important; }
+    .menu-content > div:last-child a { color: var(--ink-soft) !important; }
+
+    /* ── 본문 ─────────────────────────────────── */
+    .api-content h1 { color: var(--ink) !important; font-size: 30px !important; letter-spacing: -0.01em; }
+    /* 절·태그 제목(2단계)과 개별 API 제목(3단계)의 크기를 구분 */
+    .api-content h2 { color: var(--ink) !important; font-size: 26px !important; letter-spacing: -0.01em; }
+    .api-content h2::before {
+      content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 10px;
+      border-radius: 50%; background: var(--rose); vertical-align: 3px;
+    }
+    .api-content [data-section-id*="/operation/"] h2 { font-size: 19px !important; letter-spacing: 0; }
+    .api-content [data-section-id*="/operation/"] h2::before { width: 7px; height: 7px; margin-right: 8px; vertical-align: 2px; background: var(--blossom-deep); }
+    .api-content h3 { color: var(--ink-soft) !important; font-size: 13px !important; letter-spacing: .06em; }
+    .api-content p, .api-content li, .api-content td { line-height: 1.8 !important; color: var(--ink); }
+    /* 마크다운 표만 스타일링 (스키마 표는 Redoc 기본 유지) */
+    /* 접히는 목록(카드 타입) */
+    .api-content details.card-types { border: 1px solid var(--line); border-radius: 12px; background: #fff; margin: 12px 0 0; }
+    .api-content details.card-types > summary { cursor: pointer; padding: 10px 14px; font-weight: 600; color: var(--rose); list-style: none; }
+    .api-content details.card-types > summary::-webkit-details-marker { display: none; }
+    .api-content details.card-types > summary::before { content: "▸"; display: inline-block; margin-right: 8px; transition: transform .15s; }
+    .api-content details.card-types[open] > summary::before { transform: rotate(90deg); }
+    .api-content details.card-types > table { margin: 0 14px 14px; }
+    .api-content details.card-types td, .api-content details.card-types th { padding: 6px 14px; border-bottom: 1px solid var(--line); text-align: left; }
+    .api-content details.card-types th { background: var(--blossom); }
+    .api-content .redoc-markdown table { display: table !important; width: auto !important; border-collapse: separate !important; border-spacing: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .api-content .redoc-markdown table th { background: var(--blossom) !important; color: var(--ink) !important; border: none !important; border-bottom: 1px solid var(--line) !important; font-weight: 600; }
+    .api-content .redoc-markdown table td { border: none !important; border-bottom: 1px solid var(--line) !important; }
+    .api-content .redoc-markdown table td code { white-space: nowrap; }
+    .api-content .redoc-markdown table tr:last-child td { border-bottom: none !important; }
+    .api-content .redoc-markdown table tr:nth-child(even) td { background: #fffaf7; }
+    .api-content code, .menu-content code {
+      background: #fff1f3 !important; color: var(--rose-deep) !important;
+      border: 1px solid #f8dde3 !important; border-radius: 6px !important; padding: 1px 6px !important;
+      font-size: 12.5px !important;
+    }
+    /* 필드명(왼쪽 컬럼) 배경 */
+    .api-content .redoc-markdown table td:first-child code { background: #fff !important; }
+
+    /* 엔드포인트 경로 바 */
+    .api-content [class*="Endpoint"] > button, .api-content button[class*="EndpointBtn"] {
+      background: #fff !important; border: 1px solid var(--line) !important; border-radius: 12px !important;
+      box-shadow: 0 1px 3px rgba(74,64,70,.06) !important;
+    }
+    .http-verb { border-radius: 8px !important; font-weight: 700 !important; letter-spacing: .02em; }
+    .http-verb.get    { background: var(--sage-deep) !important; }
+    .http-verb.post   { background: var(--sky-deep) !important; }
+    .http-verb.put    { background: var(--butter-deep) !important; }
+    .http-verb.patch  { background: var(--lilac-deep) !important; }
+    .http-verb.delete { background: var(--rose-deep) !important; }
+
+    /* 응답 코드 행 */
+    .api-content button[class*="ResponseTitle"] { border-radius: 12px !important; margin-bottom: 6px !important; }
+
+    /* ── 우측 패널 (라이트) ─────────────────────── */
+    .redoc-wrap [class*="RightPanel"], .redoc-wrap [class*="right-panel"] { background: var(--panel) !important; }
+    .redoc-wrap [class*="RightPanel"] h3, .redoc-wrap [class*="right-panel"] h3 { color: var(--ink) !important; }
+    /* 샘플 도구 버튼(Copy · Expand all · Collapse all)을 버튼답게 */
+    .redoc-wrap div:has(> button + button) { display: flex; gap: 6px; justify-content: flex-end; margin-bottom: 8px; }
+    .redoc-wrap div > button:has(+ button), .redoc-wrap div > button + button {
+      appearance: none; cursor: pointer; padding: 4px 12px !important; border-radius: 999px !important;
+      border: 1px solid var(--blossom-deep) !important; background: #fff !important; color: var(--rose) !important;
+      font-size: 12px !important; font-weight: 600 !important; line-height: 1.6 !important; margin: 0 !important;
+      transition: background .15s, color .15s;
+    }
+    .redoc-wrap div > button:has(+ button):hover, .redoc-wrap div > button + button:hover { background: var(--rose) !important; color: #fff !important; border-color: var(--rose) !important; }
+    .redoc-wrap div > button:has(+ button) > div, .redoc-wrap div > button + button > div { display: inline; color: inherit !important; font-size: inherit !important; }
+    .react-tabs__tab-list { border-bottom: 1px solid #dfe8dc !important; }
+    .react-tabs__tab {
+      background: #fff !important; color: var(--ink-soft) !important; border: 1px solid #e3ebe0 !important;
+      border-bottom: none !important; border-radius: 10px 10px 0 0 !important;
+    }
+    .react-tabs__tab--selected { background: var(--rose) !important; color: #fff !important; border-color: var(--rose) !important; }
+    .react-tabs__tab-panel > div { background: var(--code-bg) !important; border-radius: 12px !important; }
+    /* 코드 샘플 토큰 */
+    .redoc-wrap pre { color: var(--ink) !important; }
+    .redoc-wrap .token.string { color: #4f9a6e !important; }
+    .redoc-wrap .token.number, .redoc-wrap .token.boolean { color: #4d7fc0 !important; }
+    .redoc-wrap .token.property, .redoc-wrap .token.punctuation { color: var(--ink) !important; }
+    .redoc-wrap [class*="right-panel"] div[class*="ExampleValue"], .redoc-wrap [class*="right-panel"] [class*="samples"] { color: var(--ink) !important; }
+    .redoc-wrap [class*="right-panel"] select, .redoc-wrap [class*="right-panel"] label { color: var(--ink) !important; }
+  </style>
+</head>
+<body>
+  <redoc
+    spec-url="./openapi.yaml"
+    hide-download-button
+    expand-responses="200,201"
+    required-props-first
+    path-in-middle-panel
+    json-sample-expand-level="2"
+    schema-expansion-level="all"
+    theme='{
+      "colors": {
+        "primary": { "main": "#e08a9b" },
+        "success": { "main": "#6fae87" },
+        "warning": { "main": "#d9b04f" },
+        "error": { "main": "#d5788b" },
+        "text": { "primary": "#4a4046", "secondary": "#857a80" },
+        "border": { "dark": "#f3dfe3", "light": "#faeef1" },
+        "responses": {
+          "success": { "color": "#4f9a6e", "backgroundColor": "#eef7f0", "tabTextColor": "#4f9a6e" },
+          "error": { "color": "#c86b7e", "backgroundColor": "#fdeef1", "tabTextColor": "#c86b7e" },
+          "redirect": { "color": "#b08a3a", "backgroundColor": "#fdf6e3" },
+          "info": { "color": "#5b86c2", "backgroundColor": "#edf3fb" }
+        },
+        "http": {
+          "get": "#6fae87", "post": "#7aa3d6", "put": "#d9b04f",
+          "patch": "#a48cd0", "delete": "#c86b7e"
+        }
+      },
+      "typography": {
+        "fontSize": "15px",
+        "lineHeight": "1.75",
+        "fontFamily": "-apple-system, BlinkMacSystemFont, \"Apple SD Gothic Neo\", Pretendard, \"Segoe UI\", \"Noto Sans KR\", sans-serif",
+        "headings": { "fontFamily": "inherit", "fontWeight": "700", "lineHeight": "1.4" },
+        "code": { "fontSize": "13px", "fontFamily": "\"SF Mono\", Menlo, Consolas, monospace", "color": "#c86b7e", "backgroundColor": "#fff1f3" },
+        "links": { "color": "#c86b7e", "visited": "#c86b7e", "hover": "#e08a9b" }
+      },
+      "sidebar": {
+        "backgroundColor": "#fdeef1",
+        "textColor": "#4a4046",
+        "activeTextColor": "#c86b7e",
+        "width": "280px",
+        "groupItems": { "activeBackgroundColor": "#fff", "activeTextColor": "#c86b7e" },
+        "level1Items": { "activeBackgroundColor": "#fff", "activeTextColor": "#c86b7e" }
+      },
+      "rightPanel": {
+        "backgroundColor": "#f4f7f2",
+        "textColor": "#4a4046",
+        "width": "42%"
+      },
+      "codeBlock": { "backgroundColor": "#eef3ea" },
+      "schema": {
+        "nestedBackground": "#fff8f4",
+        "typeNameColor": "#5b86c2",
+        "typeTitleColor": "#5b86c2",
+        "requireLabelColor": "#c86b7e",
+        "linesColor": "#f3dfe3",
+        "labelsTextSize": "0.85em"
+      },
+      "spacing": { "sectionVertical": 48, "sectionHorizontal": 40 }
+    }'
+  ></redoc>
+  <script src="../redoc.standalone.js"></script>
+</body>
+</html>
