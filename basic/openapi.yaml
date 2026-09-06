@@ -27,7 +27,7 @@ info:
 
     | 상태 | 언제 |
     | ---: | --- |
-    | `400` | 요청 본문 형식, enum 값 또는 필드 제약 위반 |
+    | `400` | 요청 본문 형식, enum 값, 필드 제약 위반. 경로·쿼리 파라미터의 형식이나 범위 위반도 포함 |
     | `404` | 존재하지 않는 게임 ID |
     | `409` | 이미 끝난 게임에 대한 진행 저장 |
 
@@ -308,7 +308,7 @@ paths:
         - name: keyword
           in: query
           required: false
-          description: 플레이어 이름 부분 일치(대소문자 무시)
+          description: 플레이어 이름 부분 일치(대소문자 무시). 앞뒤 공백은 지우고, 공백만이면 조건을 무시한다
           schema:
             type: string
         - name: page
@@ -423,6 +423,8 @@ components:
         currentFloor: 1
         phase: REWARD
         status: PLAYING
+        createdAt: '2026-09-03T18:20:11'
+        updatedAt: '2026-09-03T18:20:11'
         deck:
           - { id: 31, cardType: STRIKE, acquiredFloor: 0 }
           - { id: 32, cardType: STRIKE, acquiredFloor: 0 }
@@ -441,6 +443,8 @@ components:
         currentFloor: 5
         phase: REWARD
         status: PLAYING
+        createdAt: '2026-09-03T18:20:11'
+        updatedAt: '2026-09-03T19:02:45'
         deck:
           - { id: 58, cardType: STRIKE, acquiredFloor: 0 }
           - { id: 59, cardType: HEART_PIERCE, acquiredFloor: 0 }
@@ -598,11 +602,11 @@ components:
             FAILED: 도중에 HP가 0이 되어 실패했다.
         deckSize:
           type: integer
-          description: 저장된 덱의 카드 수
+          description: 저장된 덱의 카드 수. 목록·검색 응답에만 있고 상세 응답에는 없다(덱 자체가 있으므로)
           example: 12
         createdAt:
           type: string
-          description: 생성 시각. 서버 시간대 기준 ISO 8601 형식이며 시간대 표기는 없다.
+          description: 생성 시각. 서버 시간대 기준 ISO 8601 형식이며 시간대 표기는 없다. 소수점 초가 붙을 수 있다.
           example: '2026-09-03T18:20:11'
         updatedAt:
           type: string

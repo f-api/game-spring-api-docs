@@ -43,7 +43,7 @@ info:
     | `WORLD_LIMIT_REACHED` | `409` | 월드가 이미 3개인 상태에서 생성 |
     | `WORLD_IN_USE` | `409` | 접속자가 있는 월드를 삭제 |
     | `INTERNAL_ERROR` | `500` | 예기치 못한 오류 |
-    | `WORLD_BASELINE_INITIALIZING` | `503` | 서버 기동 직후 월드 준비가 끝나기 전. 잠시 뒤 다시 요청하면 된다 |
+    | `WORLD_BASELINE_INITIALIZING` | `503` | 서버 기동 직후 월드 준비가 끝나기 전의 월드 API 요청. 잠시 뒤 다시 요청하면 된다 |
 
     알 수 없는 필드는 무시하지 않고 `400 INVALID_REQUEST_BODY`로 거절한다. 시각 필드는
     서버 시간대 기준 ISO 8601 문자열이고 시간대 표기는 없다(`2026-07-16T12:34:56`).
@@ -70,7 +70,7 @@ info:
     | `4002` | 같은 월드에 같은 닉네임이 이미 접속 중. 먼저 붙은 연결이 유지되고 나중 연결이 끊긴다 |
 
     Origin이 same-origin 또는 허용 목록(`http://localhost:[*]`, `http://127.0.0.1:[*]`)에 없으면
-    close code 없이 핸드셰이크 단계에서 `403`이다.
+    close code 없이 핸드셰이크 단계에서 `403`이다. 서버 기동 직후 월드 준비가 끝나기 전에는 같은 방식으로 `503`이다.
 
     ### 메시지 형식
 
@@ -79,7 +79,8 @@ info:
     보내고 연결은 유지한다. 메시지 오류만으로는 연결을 끊지 않는다.
 
     핸들러는 JSON 필드의 형식만 검사한다. 리치·사거리·쿨다운·인벤토리 보유 같은 게임 규칙은
-    월드별 100ms 틱 루프가 판정한 뒤 결과를 방송한다. `chat`·`ping`·`emote`는 즉시 처리한다.
+    월드별 100ms 틱 루프가 판정한 뒤 결과를 방송한다. 엔진 액션이 아닌 `chat`·`ping`·`emote`·`leaveWorld`·`presenceList`는
+    틱 큐를 거치지 않고 즉시 처리한다. REST와 달리 메시지에 알 수 없는 필드가 있어도 무시하고 거절하지 않는다.
 
     ### 접속 흐름
 
@@ -124,7 +125,7 @@ info:
 
     서버 여러 대가 같은 Redis를 쓸 때, 어느 서버에 붙은 클라이언트든 같은 월드의 채팅을 받도록 Redis Pub/Sub으로 전달한다.
 
-    - channel: `webcraft:chat` (월드 구분은 메시지의 `worldId`로 한다)
+    - channel: 월드마다 하나. `webcraft:chat:{worldId}`
     - MySQL 저장이 성공한 채팅만 한 번 발행한다. 발행한 서버는 WebSocket에 직접 방송하지 않는다.
     - 모든 서버가 같은 channel을 구독하고, 받은 메시지의 `worldId`에 속한 자기 세션에만 `chat`으로 방송한다. 그래서 같은 채팅이 두 번 보이지 않는다.
     - 오프라인 재전송이나 정확히 한 번 전달은 보장하지 않는다.
@@ -258,7 +259,8 @@ info:
     <SchemaDefinition schemaRef="#/components/schemas/WsEmoteBroadcast" />
 
     ### presenceList · 접속자 목록
-    나에게만. 만료된 연결을 제외한 살아 있는 접속자의 닉네임이다.
+    `presenceList` 요청에는 나에게만 답한다. 그와 별개로 누군가 입장·퇴장했거나 만료된 연결이 정리된 뒤에는
+    같은 월드 전원에게 최신 목록을 방송한다. 만료된 연결을 제외한 살아 있는 접속자의 닉네임이다.
     <SchemaDefinition schemaRef="#/components/schemas/WsPresenceList" />
 
     몹·투사체·인벤토리·제작 등 나머지 게임플레이 메시지는 모두 제공 엔진이 보내며 백여 종이 있다.
@@ -404,6 +406,14 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: WORLD_LIMIT_REACHED
+        '503':
+          description: 서버 기동 직후 월드 준비가 끝나기 전
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: WORLD_BASELINE_INITIALIZING
 
   /worlds/{worldId}/chats:
     parameters:
@@ -478,6 +488,8 @@ paths:
           $ref: '#/components/responses/WorldNotFound'
         '409':
           $ref: '#/components/responses/WorldInUse'
+        '503':
+          $ref: '#/components/responses/BaselineInitializing'
 
   /worlds/{worldId}/if-matches:
     parameters:
@@ -520,6 +532,8 @@ paths:
           $ref: '#/components/responses/WorldNotFound'
         '409':
           $ref: '#/components/responses/WorldInUse'
+        '503':
+          $ref: '#/components/responses/BaselineInitializing'
 
 components:
   parameters:
@@ -527,7 +541,7 @@ components:
       name: worldId
       in: path
       required: true
-      description: 월드의 고유 식별자
+      description: 월드의 고유 식별자. 숫자가 아니면 `400 VALIDATION_FAILED`
       schema:
         type: integer
         format: int64
@@ -535,8 +549,8 @@ components:
     RequesterNickname:
       name: nickname
       in: query
-      required: true
-      description: 요청한 플레이어의 닉네임. 없거나 등록되지 않았으면 `403`
+      required: false
+      description: 요청한 플레이어의 닉네임. 사실상 필수이며, 없거나 등록되지 않았으면 `400`이 아니라 `403`이다
       schema:
         type: string
         example: steve
@@ -558,6 +572,14 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             error: NOT_WORLD_OWNER
+    BaselineInitializing:
+      description: 서버 기동 직후 월드 준비가 끝나기 전
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: WORLD_BASELINE_INITIALIZING
     WorldInUse:
       description: 접속자가 있거나 종료 저장 중인 월드
       content:
@@ -692,7 +714,8 @@ components:
       properties:
         name:
           type: string
-          description: 호출자가 본 월드 이름
+          description: 호출자가 본 월드 이름. 공백만으로 된 값은 허용하지 않는다
+          minLength: 1
           maxLength: 30
           example: 내 첫 월드
         seed:
@@ -1003,17 +1026,21 @@ components:
         code:
           type: string
           description: 오류 코드
-          enum: [INVALID_JSON, INVALID_MESSAGE, UNKNOWN_TYPE, INTERNAL_ERROR, EDIT_REJECTED, RATE_LIMITED, QUEUE_FULL, CHAT_COOLDOWN, CHAT_RATE_LIMITED]
+          enum: [INVALID_JSON, INVALID_MESSAGE, UNKNOWN_TYPE, INTERNAL_ERROR, EDIT_REJECTED, INTERACT_REJECTED, RATE_LIMITED, QUEUE_FULL, CHAT_COOLDOWN, CHAT_RATE_LIMITED]
           x-enumDescriptions:
             INVALID_JSON: 받은 텍스트가 JSON이 아님
             INVALID_MESSAGE: JSON 객체가 아니거나 필드 형식 검증 실패(필드 누락, 잘못된 타입, NaN·무한대)
             UNKNOWN_TYPE: type이 없거나 처리기가 없는 값
             INTERNAL_ERROR: 처리 중 예기치 못한 서버 오류. 연결은 유지
             EDIT_REJECTED: 블록 편집 거부(리치 초과·설치 불가·인벤토리 부족). 원상복구 blockUpdate가 함께 온다
+            INTERACT_REJECTED: 블록·몹 상호작용 거부(거리 초과 등)
             RATE_LIMITED: 세션당 인바운드 예산(120msg/s, 버스트 240) 초과. 초과분은 버려지고 통지는 초당 한 번
             QUEUE_FULL: 액션 큐 상한(플레이어당 256, 월드 4096) 초과. 다음 틱에 다시 받는다
             CHAT_COOLDOWN: 세션당 1초 채팅 쿨다운 안에 다시 보냄. 그 채팅은 저장·방송되지 않는다
             CHAT_RATE_LIMITED: 플레이어 단위 도배 제한(10초에 5건) 초과. 그 채팅은 저장·방송되지 않는다
+        context:
+          type: object
+          description: 편집 거부 때만 붙는 부가 정보. `action`, 좌표 `x`·`y`·`z`, `currentBlock`, `requestedBlock`
       example: { type: error, code: UNKNOWN_TYPE }
 
     WsPong:
@@ -1038,7 +1065,25 @@ components:
           description: 메시지 종류
         self:
           type: object
-          description: 내 상태. 위치·시선·체력·허기·인벤토리(`inventory`, `offhand`, `selectedSlot`)를 담는다
+          description: 내 상태
+          required: [x, y, z, yaw, pitch, health, maxHealth, hunger, saturationMilli, inventory, armor, offhand, selectedSlot, onFire, effects, xpTotal]
+          properties:
+            x: { type: number, format: double, description: 위치 X }
+            y: { type: number, format: double, description: 위치 Y }
+            z: { type: number, format: double, description: 위치 Z }
+            yaw: { type: number, format: float, description: 수평 시선(라디안) }
+            pitch: { type: number, format: float, description: 수직 시선(라디안) }
+            health: { type: integer, description: 현재 체력 }
+            maxHealth: { type: integer, description: 최대 체력 }
+            hunger: { type: integer, description: 허기(0~20) }
+            saturationMilli: { type: integer, description: 포만감을 1000배한 정수 }
+            inventory: { type: array, description: 인벤토리 36칸, items: { type: object } }
+            armor: { type: array, description: 방어구 4칸, items: { type: object } }
+            offhand: { type: object, description: 보조손 칸 }
+            selectedSlot: { type: integer, description: 선택된 핫바 슬롯(0~8) }
+            onFire: { type: boolean, description: 불타는 중인지 }
+            effects: { type: array, description: 걸려 있는 상태이상, items: { type: object } }
+            xpTotal: { type: integer, description: 누적 경험치 }
         worldTime:
           type: integer
           format: int64
@@ -1063,26 +1108,26 @@ components:
           items:
             type: object
         weather:
-          $ref: '#/components/schemas/WsWeather'
+          $ref: '#/components/schemas/WsWeatherState'
         difficulty:
           type: string
           description: 월드 난이도
           enum: [easy, normal, hard]
       example:
         type: welcome
-        self: { nickname: steve, x: 0.5, y: 71.0, z: 0.5, yaw: 0, pitch: 0, health: 20, hunger: 20, selectedSlot: 0 }
+        self: { x: 0.5, y: 71.0, z: 0.5, yaw: 0, pitch: 0, health: 20, maxHealth: 20, hunger: 20, saturationMilli: 5000, inventory: [], armor: [], offhand: { slot: 40, itemType: 0, count: 0 }, selectedSlot: 0, onFire: false, effects: [], xpTotal: 0 }
         worldTime: 6000
         dayCount: 0
-        players: [{ nickname: alex, x: 3.0, y: 71.0, z: -2.0, yaw: 1.2, pitch: 0.0 }]
+        players: [{ nickname: alex, x: 3.0, y: 71.0, z: -2.0, yaw: 1.2, pitch: 0.0, onFire: false, selectedItemId: 0, offhandItemId: 0 }]
         mobs: []
         items: []
-        weather: { kind: clear }
+        weather: { type: weatherState, kind: clear }
         difficulty: normal
 
     WsPlayerPose:
       title: 플레이어 위치
       type: object
-      required: [nickname, x, y, z, yaw, pitch]
+      required: [nickname, x, y, z, yaw, pitch, onFire, selectedItemId, offhandItemId]
       properties:
         nickname:
           type: string
@@ -1107,6 +1152,15 @@ components:
           type: number
           format: float
           description: 수직 시선(라디안)
+        onFire:
+          type: boolean
+          description: 불타는 중인지
+        selectedItemId:
+          type: integer
+          description: 주손에 든 아이템 ID. 빈손은 0
+        offhandItemId:
+          type: integer
+          description: 보조손에 든 아이템 ID. 빈손은 0
 
     WsPlayerJoin:
       title: playerJoin
@@ -1152,7 +1206,7 @@ components:
             $ref: '#/components/schemas/WsPlayerPose'
       example:
         type: playerMoves
-        players: [{ nickname: alex, x: 3.5, y: 71.0, z: -2.0, yaw: 1.3, pitch: 0.0 }]
+        players: [{ nickname: alex, x: 3.5, y: 71.0, z: -2.0, yaw: 1.3, pitch: 0.0, onFire: false, selectedItemId: 0, offhandItemId: 0 }]
 
     WsChatBroadcast:
       title: chat (방송)
@@ -1225,12 +1279,16 @@ components:
           type: integer
           format: int64
           description: 현재 월드 시각(틱)
-      example: { type: timeSync, worldTime: 6100 }
+        dayCount:
+          type: integer
+          format: int64
+          description: 서버 누적 일수. 없을 수도 있다
+      example: { type: timeSync, worldTime: 6100, dayCount: 0 }
 
     WsHealthUpdate:
       title: healthUpdate
       type: object
-      required: [type, health, cause]
+      required: [type, health, maxHealth, cause, hunger, saturationMilli]
       properties:
         type:
           type: string
@@ -1238,17 +1296,44 @@ components:
           description: 메시지 종류
         health:
           type: integer
-          description: 현재 체력(0~20)
+          description: 현재 체력
+        maxHealth:
+          type: integer
+          description: 최대 체력. 보통 20
         cause:
           type: string
-          description: 변경 원인. 예를 들어 `fall`, `mob`, `starve`, `regen`
+          description: 변경 원인
+          enum: [melee, arrow, explosion, fall_small, fall_big, on_fire, in_fire, lava, drown, cactus, freeze, fly_into_wall, lightning, geyser, poison, magic, starve, food, regen, golden_apple_regeneration, respawn, hunger]
+          x-enumDescriptions:
+            melee: 몹의 근접 공격
+            arrow: 화살
+            explosion: 폭발
+            fall_small: 낮은 곳에서 낙하
+            fall_big: 높은 곳에서 낙하
+            on_fire: 불붙은 상태의 지속 피해
+            in_fire: 불 블록 안
+            lava: 용암
+            drown: 익사
+            cactus: 선인장
+            freeze: 동상
+            fly_into_wall: 활공 중 벽 충돌
+            lightning: 낙뢰
+            geyser: 간헐천 밀어올림. 피해 0
+            poison: 독 상태이상
+            magic: 마법 피해
+            starve: 굶주림
+            food: 음식 섭취로 회복
+            regen: 자연 회복
+            golden_apple_regeneration: 황금 사과 재생
+            respawn: 리스폰으로 복원
+            hunger: 체력은 그대로고 허기만 바뀜
         hunger:
           type: integer
           description: 허기(0~20)
         saturationMilli:
           type: integer
           description: 포만감을 1000배한 정수
-      example: { type: healthUpdate, health: 14, cause: fall, hunger: 18, saturationMilli: 4200 }
+      example: { type: healthUpdate, health: 14, maxHealth: 20, cause: fall_small, hunger: 18, saturationMilli: 4200 }
 
     WsRespawn:
       title: respawn (확정)
@@ -1281,20 +1366,6 @@ components:
         y: { type: number, format: double, description: 리스폰 위치 Y }
         z: { type: number, format: double, description: 리스폰 위치 Z }
       example: { type: playerRespawn, nickname: alex, x: 0.5, y: 71.0, z: 0.5 }
-
-    WsWeather:
-      title: 날씨
-      type: object
-      required: [kind]
-      properties:
-        kind:
-          type: string
-          description: 날씨 종류
-          enum: [clear, rain, thunder]
-          x-enumDescriptions:
-            clear: 맑음
-            rain: 비
-            thunder: 뇌우
 
     WsWeatherState:
       title: weatherState
@@ -1370,13 +1441,13 @@ components:
     ChatPublishEvent:
       title: 채팅 발행 메시지
       type: object
-      description: Redis channel `webcraft:chat`에 발행하는 JSON
+      description: Redis channel `webcraft:chat:{worldId}`에 발행하는 JSON
       required: [worldId, sender, content, timestamp, originInstanceId]
       properties:
         worldId:
           type: integer
           format: int64
-          description: 채팅이 속한 월드
+          description: 채팅이 속한 월드. 채널 이름의 월드와 같아야 한다
         sender:
           type: string
           description: 보낸 플레이어 닉네임
