@@ -29,19 +29,6 @@ info:
     - 오류 응답 본문에 `message` 문자열이 있으면 클라이언트가 화면에 그대로 표시한다.
     - 카드 타입(`cardType`)은 서버가 해석하지 않는 문자열이다.
 
-    ## 검증 규칙
-
-    | 필드 | 제약 |
-    | --- | --- |
-    | `playerName` | 공백이 아닌 2~12자 |
-    | `deck` | 한 장 이상 |
-    | `cardType` | 공백이 아닌 문자열 |
-    | `acquiredFloor` | 정수 0~10 |
-    | `currentHp` | 정수 0~99 |
-    | `currentFloor` | 정수 1~10 |
-    | `phase` | `BATTLE`, `REWARD`, `FINISHED` 중 하나 |
-    | `status` | `PLAYING`, `CLEARED`, `FAILED` 중 하나 |
-
     ## 선택 필드
 
     `createdAt`, `updatedAt`(저장 시각)과 `deckSize`(카드 수)는 목록·상세 응답의

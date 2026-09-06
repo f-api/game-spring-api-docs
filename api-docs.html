@@ -58,11 +58,14 @@
 
     /* ── 본문 ─────────────────────────────────── */
     .api-content h1 { color: var(--ink) !important; font-size: 30px !important; letter-spacing: -0.01em; }
-    .api-content h2 { color: var(--ink) !important; font-size: 22px !important; }
+    /* 절·태그 제목(2단계)과 개별 API 제목(3단계)의 크기를 구분 */
+    .api-content h2 { color: var(--ink) !important; font-size: 26px !important; letter-spacing: -0.01em; }
     .api-content h2::before {
       content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 10px;
-      border-radius: 50%; background: var(--rose); vertical-align: 2px;
+      border-radius: 50%; background: var(--rose); vertical-align: 3px;
     }
+    .api-content [data-section-id*="/operation/"] h2 { font-size: 19px !important; letter-spacing: 0; }
+    .api-content [data-section-id*="/operation/"] h2::before { width: 7px; height: 7px; margin-right: 8px; vertical-align: 2px; background: var(--blossom-deep); }
     .api-content h3 { color: var(--ink-soft) !important; font-size: 13px !important; letter-spacing: .06em; }
     .api-content p, .api-content li, .api-content td { line-height: 1.8 !important; color: var(--ink); }
     /* 마크다운 표만 스타일링 (스키마 표는 Redoc 기본 유지) */
