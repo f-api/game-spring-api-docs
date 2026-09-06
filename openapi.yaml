@@ -20,21 +20,57 @@ info:
     | `GET` | `/games/search` | `200` | 조건 검색과 페이징 |
     | `GET` | `/games/stats` | `200` | 전체 기록 집계 |
 
-    ## 공통 규칙
+    ## 오류 응답
 
-    - 기본 주소는 `http://localhost:8080`이며 모든 요청과 응답은 JSON이다.
-    - 성공 응답 상태 코드는 명세의 값을 따르되, 클라이언트는 2xx면 성공으로 처리한다.
-    - 요청 본문의 형식, enum 값 또는 검증 규칙이 맞지 않으면 `400 Bad Request`를 반환한다.
-    - 존재하지 않는 게임 ID를 지정하면 `404 Not Found`를 반환한다.
-    - 오류 응답 본문에 `message` 문자열이 있으면 클라이언트가 화면에 그대로 표시한다.
-    - 카드 타입(`cardType`)은 서버가 해석하지 않는 문자열이다.
+    실패한 요청은 상태 코드와 함께 아래 형식의 본문을 돌려준다. `message`는 사람이 읽을 수 있는
+    원인 설명이며, 게임 클라이언트는 이 문자열을 화면에 그대로 표시한다.
 
-    ## 선택 필드
+    | 상태 | 언제 |
+    | ---: | --- |
+    | `400` | 요청 본문 형식, enum 값 또는 필드 제약 위반 |
+    | `404` | 존재하지 않는 게임 ID |
+    | `409` | 이미 끝난 게임에 대한 진행 저장 |
 
-    `createdAt`, `updatedAt`(저장 시각)과 `deckSize`(카드 수)는 목록·상세 응답의
-    선택 필드다. `GET /games/search`와 `GET /games/stats`는 선택 API로, 서버가
-    `404`를 반환하면 클라이언트는 해당 기능(목록 페이징, 기록판)을 숨긴다.
-    선택 필드가 있으면 클라이언트는 저장 시각과 카드 수를 표시한다.
+    <SchemaDefinition schemaRef="#/components/schemas/ErrorResponse" />
+
+    ## 선택 기능
+
+    `GET /games/search`와 `GET /games/stats`는 없어도 되는 API다. 서버가 `404`를 반환하면
+    클라이언트는 목록 페이징과 기록판을 숨기고 전체 목록으로 동작한다.
+
+    ## 데이터 모델
+
+    요청과 응답에 쓰이는 객체다. 각 API 문서의 스키마에서도 같은 내용을 펼쳐 볼 수 있다.
+
+    ### CreateRequest
+    <SchemaDefinition schemaRef="#/components/schemas/CreateRequest" />
+
+    ### RunCardRequest
+    <SchemaDefinition schemaRef="#/components/schemas/RunCardRequest" />
+
+    ### ProgressRequest
+    <SchemaDefinition schemaRef="#/components/schemas/ProgressRequest" />
+
+    ### RenameRequest
+    <SchemaDefinition schemaRef="#/components/schemas/RenameRequest" />
+
+    ### GameSummaryResponse
+    <SchemaDefinition schemaRef="#/components/schemas/GameSummaryResponse" />
+
+    ### GameDetailResponse
+    <SchemaDefinition schemaRef="#/components/schemas/GameDetailResponse" />
+
+    ### CardResponse
+    <SchemaDefinition schemaRef="#/components/schemas/CardResponse" />
+
+    ### GamePageResponse
+    <SchemaDefinition schemaRef="#/components/schemas/GamePageResponse" />
+
+    ### GameStatsResponse
+    <SchemaDefinition schemaRef="#/components/schemas/GameStatsResponse" />
+
+    ### ErrorResponse
+    <SchemaDefinition schemaRef="#/components/schemas/ErrorResponse" />
 servers:
   - url: http://localhost:8080
 tags:
@@ -477,7 +513,9 @@ components:
 
     GameSummaryResponse:
       type: object
-      description: 덱을 제외한 실행 요약
+      description: |
+        덱을 제외한 실행 요약. `deckSize`, `createdAt`, `updatedAt`은 선택 필드이며,
+        있으면 클라이언트가 카드 수와 저장 시각을 표시한다.
       required: [id, playerName, currentFloor, currentHp, phase, status]
       properties:
         id:
@@ -499,7 +537,7 @@ components:
           $ref: '#/components/schemas/GameStatus'
         deckSize:
           type: integer
-          description: 저장된 덱의 카드 수. 선택 필드이며 있으면 목록에 표시된다.
+          description: 저장된 덱의 카드 수
           example: 12
         createdAt:
           type: string
