@@ -5,18 +5,18 @@ info:
   description: |
     붉은 달의 성채(Crimson Citadel) 게임의 체크포인트 저장 서버 API다.
     전투 계산, 적 배치, 보상과 층 전이는 게임 클라이언트가 담당하고,
-    서버는 실행(`Game`)과 그 덱(`RunCard`)을 저장·조회하는 CRUD만 제공한다.
+    서버는 게임과 그 덱을 저장·조회하는 CRUD만 제공한다.
 
     ## 한눈에 보기
 
     | 메서드 | 경로 | 성공 | 하는 일 |
     | --- | --- | ---: | --- |
-    | `POST` | `/games` | `201` | 실행과 시작 덱 생성 |
-    | `GET` | `/games` | `200` | 실행 요약 목록 (ID 내림차순) |
-    | `GET` | `/games/{gameId}` | `200` | 실행 상세와 전체 덱 |
+    | `POST` | `/games` | `201` | 게임과 시작 덱 생성 |
+    | `GET` | `/games` | `200` | 게임 요약 목록 (ID 내림차순) |
+    | `GET` | `/games/{gameId}` | `200` | 게임 상세와 전체 덱 |
     | `PATCH` | `/games/{gameId}` | `204` | 플레이어 이름 변경 |
     | `PUT` | `/games/{gameId}/progress` | `200` | 진행 필드와 전체 덱 저장 |
-    | `DELETE` | `/games/{gameId}` | `204` | 실행과 덱 삭제 |
+    | `DELETE` | `/games/{gameId}` | `204` | 게임과 덱 삭제 |
     | `GET` | `/games/search` | `200` | 조건 검색과 페이징 |
     | `GET` | `/games/stats` | `200` | 전체 기록 집계 |
 
@@ -45,7 +45,7 @@ info:
     ### 게임 생성 요청
     <SchemaDefinition schemaRef="#/components/schemas/CreateRequest" />
 
-    ### 카드 (요청)
+    ### 요청 카드
     <SchemaDefinition schemaRef="#/components/schemas/RunCardRequest" />
 
     ### 진행 저장 요청
@@ -121,18 +121,18 @@ info:
 servers:
   - url: http://localhost:8080
 tags:
-  - name: Game
-    description: 실행(게임) 생성, 조회, 이름 변경, 진행 저장, 삭제
-  - name: Search
-    description: 조건 검색과 페이징
+  - name: 게임
+    description: 게임 생성, 조회, 이름 변경, 진행 저장, 삭제
+  - name: 검색
+    description: 조건 검색·페이징과 전체 기록 집계
 
 paths:
   /games:
     post:
-      tags: [Game]
+      tags: [게임]
       summary: 게임 생성
       description: |
-        플레이어 이름과 시작 덱으로 새 실행을 만든다. 덱은 요청 순서대로 저장된다.
+        플레이어 이름과 시작 덱으로 새 게임을 만든다. 덱은 요청 순서대로 저장된다.
         `currentHp=99`, `currentFloor=1`, `phase=REWARD`, `status=PLAYING`으로 초기화한다.
       operationId: createGame
       requestBody:
@@ -155,10 +155,10 @@ paths:
                 - { cardType: MEND, acquiredFloor: 0 }
       responses:
         '201':
-          description: 생성된 실행의 상세
+          description: 생성된 게임의 상세
           headers:
             Location:
-              description: 생성된 실행의 경로 (`/games/{id}`). 선택 헤더로, 없어도 클라이언트는 동작한다.
+              description: 생성된 게임의 경로 (`/games/{id}`). 선택 헤더로, 없어도 클라이언트는 동작한다.
               schema:
                 type: string
                 example: /games/12
@@ -171,13 +171,13 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
     get:
-      tags: [Game]
+      tags: [게임]
       summary: 게임 목록 조회
-      description: 저장된 모든 실행을 ID 내림차순으로 반환한다. 덱은 포함하지 않는다. 없으면 빈 배열이다.
+      description: 저장된 모든 게임을 ID 내림차순으로 반환한다. 덱은 포함하지 않는다. 없으면 빈 배열이다.
       operationId: getGames
       responses:
         '200':
-          description: 실행 요약 목록
+          description: 게임 요약 목록
           content:
             application/json:
               schema:
@@ -191,24 +191,30 @@ paths:
                   currentHp: 61
                   phase: BATTLE
                   status: PLAYING
+                  deckSize: 12
+                  createdAt: '2026-09-03T18:20:11'
+                  updatedAt: '2026-09-03T19:02:45'
                 - id: 11
                   playerName: 붉은 순례자
                   currentFloor: 10
                   currentHp: 0
                   phase: FINISHED
                   status: FAILED
+                  deckSize: 15
+                  createdAt: '2026-09-02T21:10:03'
+                  updatedAt: '2026-09-02T22:48:39'
 
   /games/{gameId}:
     parameters:
       - $ref: '#/components/parameters/GameId'
     get:
-      tags: [Game]
+      tags: [게임]
       summary: 게임 상세 조회
-      description: 실행 한 건과 전체 덱을 반환한다. 덱은 카드 ID 오름차순이다.
+      description: 게임 한 건과 전체 덱을 반환한다. 덱은 카드 ID 오름차순이다.
       operationId: getGame
       responses:
         '200':
-          description: 실행 상세
+          description: 게임 상세
           content:
             application/json:
               schema:
@@ -218,9 +224,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
     patch:
-      tags: [Game]
+      tags: [게임]
       summary: 플레이어 이름 변경
-      description: 선택한 실행의 `playerName`만 변경한다. 다른 필드는 바뀌지 않는다.
+      description: 선택한 게임의 `playerName`만 변경한다. 다른 필드는 바뀌지 않는다.
       operationId: renameGame
       requestBody:
         required: true
@@ -238,9 +244,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
     delete:
-      tags: [Game]
+      tags: [게임]
       summary: 게임 삭제
-      description: 실행과 그에 속한 모든 카드를 삭제한다.
+      description: 게임과 그에 속한 모든 카드를 삭제한다.
       operationId: deleteGame
       responses:
         '204':
@@ -252,13 +258,13 @@ paths:
     parameters:
       - $ref: '#/components/parameters/GameId'
     put:
-      tags: [Game]
+      tags: [게임]
       summary: 진행과 전체 덱 저장
       description: |
         HP, 층, 단계, 상태와 **전체 덱**을 저장한다. `deck`은 추가할 카드가 아니라
         저장할 덱 전체다.
 
-        실행 필드 갱신과 덱 교체는 원자적으로 처리된다. 기존 카드는 모두 제거되고
+        게임 필드 갱신과 덱 교체는 원자적으로 처리된다. 기존 카드는 모두 제거되고
         요청의 덱이 순서대로 저장되므로, 같은 본문을 반복해 보내도 카드 수가 늘지 않는다.
         카드 ID는 교체할 때 새로 발급되므로 클라이언트는 응답의 덱을 사용한다.
       operationId: updateProgress
@@ -279,7 +285,7 @@ paths:
                 - { cardType: SHATTER_BOLT, acquiredFloor: 2 }
       responses:
         '200':
-          description: 교체된 카드 ID가 담긴 실행 상세
+          description: 교체된 카드 ID가 담긴 게임 상세
           content:
             application/json:
               schema:
@@ -291,7 +297,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: 이미 끝난(`CLEARED`/`FAILED`) 실행에는 진행을 저장할 수 없다
+          description: 이미 끝난(`CLEARED`/`FAILED`) 게임에는 진행을 저장할 수 없다
           content:
             application/json:
               schema:
@@ -304,17 +310,17 @@ paths:
 
   /games/search:
     get:
-      tags: [Search]
+      tags: [검색]
       summary: 게임 조건 검색과 페이징
       description: |
-        상태와 최소 층 조건으로 실행을 검색하고 ID 내림차순으로 페이징한다.
-        조건을 생략하면 전체를 대상으로 한다.
+        상태, 최소 층, 이름 키워드 조건을 조합해 게임을 검색하고 ID 내림차순으로 페이징한다.
+        조건을 모두 생략하면 전체를 대상으로 한다.
       operationId: searchGames
       parameters:
         - name: status
           in: query
           required: false
-          description: 이 상태인 실행만 포함
+          description: 이 상태인 게임만 포함
           schema:
             type: string
             enum: [PLAYING, CLEARED, FAILED]
@@ -325,7 +331,7 @@ paths:
         - name: minFloor
           in: query
           required: false
-          description: 이 층 이상(`currentFloor >= minFloor`)인 실행만 포함
+          description: 이 층 이상(`currentFloor >= minFloor`)인 게임만 포함
           schema:
             type: integer
             minimum: 1
@@ -355,7 +361,7 @@ paths:
             default: 10
       responses:
         '200':
-          description: 페이징된 실행 요약
+          description: 페이징된 게임 요약
           content:
             application/json:
               schema:
@@ -368,6 +374,7 @@ paths:
                     currentHp: 61
                     phase: BATTLE
                     status: PLAYING
+                    deckSize: 12
                     createdAt: '2026-09-03T18:20:11'
                     updatedAt: '2026-09-03T19:02:45'
                 page: 0
@@ -380,11 +387,11 @@ paths:
 
   /games/stats:
     get:
-      tags: [Search]
+      tags: [검색]
       summary: 전체 기록 집계
       description: |
-        저장된 모든 실행의 집계를 반환한다. 실행이 없으면 모든 값이 0이다.
-        `clearRate`는 끝난 실행(`CLEARED`+`FAILED`) 중 `CLEARED`의 비율을 반올림한
+        저장된 모든 게임의 집계를 반환한다. 게임이 없으면 모든 값이 0이다.
+        `clearRate`는 끝난 게임(`CLEARED`+`FAILED`) 중 `CLEARED`의 비율을 반올림한
         백분율이다.
       operationId: getStats
       responses:
@@ -408,7 +415,7 @@ components:
       name: gameId
       in: path
       required: true
-      description: 실행의 고유 식별자
+      description: 게임의 고유 식별자
       schema:
         type: integer
         format: int64
@@ -416,7 +423,7 @@ components:
 
   responses:
     BadRequest:
-      description: 요청 본문 형식, enum 값 또는 검증 규칙 위반
+      description: 요청 본문 형식, enum 값 또는 필드 제약 위반
       content:
         application/json:
           schema:
@@ -427,7 +434,7 @@ components:
             message: 'playerName 값이 올바르지 않습니다: 크기가 2에서 12 사이여야 합니다'
             path: /games
     NotFound:
-      description: 해당 ID의 실행이 없음
+      description: 해당 ID의 게임이 없음
       content:
         application/json:
           schema:
@@ -472,7 +479,7 @@ components:
 
   schemas:
     RunCardRequest:
-      title: 카드 (요청)
+      title: 요청 카드
       type: object
       required: [cardType, acquiredFloor]
       properties:
@@ -498,12 +505,15 @@ components:
         id:
           type: integer
           format: int64
+          description: 카드의 고유 식별자. 덱을 교체하면 새로 발급된다.
           example: 31
         cardType:
           type: string
+          description: 카드 타입. 값의 목록은 데이터 모델의 "카드 타입" 표에 있다.
           example: STRIKE
         acquiredFloor:
           type: integer
+          description: 카드를 얻은 층. 시작 덱은 0.
           example: 0
 
     CreateRequest:
@@ -513,7 +523,7 @@ components:
       properties:
         playerName:
           type: string
-          description: 카드 타입. 값의 목록은 데이터 모델의 "카드 타입" 표에 있다.
+          description: 플레이어 이름. 공백만으로 된 값은 허용하지 않는다.
           minLength: 2
           maxLength: 12
           example: 밤의 후계자
@@ -531,7 +541,7 @@ components:
       properties:
         playerName:
           type: string
-          description: 공백만으로 된 값은 허용하지 않는다.
+          description: 새 플레이어 이름. 공백만으로 된 값은 허용하지 않는다.
           minLength: 2
           maxLength: 12
           example: 붉은 순례자
@@ -543,19 +553,19 @@ components:
       properties:
         currentHp:
           type: integer
+          description: 현재 HP. 최대 99.
           minimum: 0
           maximum: 99
           example: 47
         currentFloor:
           type: integer
+          description: 현재 층. 1층에서 시작해 10층이 마지막이다.
           minimum: 1
           maximum: 10
           example: 5
         phase:
           type: string
-          description: |
-            실행이 멈춰 있는 단계.
-            `BATTLE`는 전투 중, `REWARD`는 보상 카드를 고르는 중, `FINISHED`는 여정이 끝난 상태다.
+          description: 게임이 멈춰 있는 단계
           enum: [BATTLE, REWARD, FINISHED]
           x-enumDescriptions:
             BATTLE: 전투 중. 다시 불러오면 해당 층의 전투가 이어진다.
@@ -563,9 +573,7 @@ components:
             FINISHED: 여정이 끝났다. status가 CLEARED 또는 FAILED다.
         status:
           type: string
-          description: |
-            실행의 결과 상태.
-            `PLAYING`은 진행 중, `CLEARED`는 최상층까지 클리어, `FAILED`는 도중에 쓰러진 상태다.
+          description: 게임의 결과 상태
           enum: [PLAYING, CLEARED, FAILED]
           x-enumDescriptions:
             PLAYING: 진행 중. 이어서 플레이할 수 있다.
@@ -582,28 +590,30 @@ components:
       title: 게임 요약
       type: object
       description: |
-        덱을 제외한 실행 요약. `deckSize`, `createdAt`, `updatedAt`은 선택 필드이며,
+        덱을 제외한 게임 요약. `deckSize`, `createdAt`, `updatedAt`은 선택 필드이며,
         있으면 클라이언트가 카드 수와 저장 시각을 표시한다.
       required: [id, playerName, currentFloor, currentHp, phase, status]
       properties:
         id:
           type: integer
           format: int64
+          description: 게임의 고유 식별자
           example: 12
         playerName:
           type: string
+          description: 플레이어 이름
           example: 밤의 후계자
         currentFloor:
           type: integer
+          description: 현재 층 (1~10)
           example: 4
         currentHp:
           type: integer
+          description: 현재 HP (0~99)
           example: 61
         phase:
           type: string
-          description: |
-            실행이 멈춰 있는 단계.
-            `BATTLE`는 전투 중, `REWARD`는 보상 카드를 고르는 중, `FINISHED`는 여정이 끝난 상태다.
+          description: 게임이 멈춰 있는 단계
           enum: [BATTLE, REWARD, FINISHED]
           x-enumDescriptions:
             BATTLE: 전투 중. 다시 불러오면 해당 층의 전투가 이어진다.
@@ -611,9 +621,7 @@ components:
             FINISHED: 여정이 끝났다. status가 CLEARED 또는 FAILED다.
         status:
           type: string
-          description: |
-            실행의 결과 상태.
-            `PLAYING`은 진행 중, `CLEARED`는 최상층까지 클리어, `FAILED`는 도중에 쓰러진 상태다.
+          description: 게임의 결과 상태
           enum: [PLAYING, CLEARED, FAILED]
           x-enumDescriptions:
             PLAYING: 진행 중. 이어서 플레이할 수 있다.
@@ -625,13 +633,11 @@ components:
           example: 12
         createdAt:
           type: string
-          format: date-time
-          description: 생성 시각
+          description: 생성 시각. 서버 시간대 기준 ISO 8601 형식이며 시간대 표기는 없다.
           example: '2026-09-03T18:20:11'
         updatedAt:
           type: string
-          format: date-time
-          description: 마지막 수정 시각
+          description: 마지막 저장 시각. 형식은 `createdAt`과 같다.
           example: '2026-09-03T19:02:45'
 
     GameDetailResponse:
@@ -668,13 +674,15 @@ components:
         totalElements:
           type: integer
           format: int64
-          description: 조건에 맞는 전체 실행 수
+          description: 조건에 맞는 전체 게임 수
           example: 7
         totalPages:
           type: integer
+          description: 전체 페이지 수
           example: 3
         hasNext:
           type: boolean
+          description: 다음 페이지가 있는지
           example: true
 
     GameStatsResponse:
@@ -685,26 +693,30 @@ components:
         totalGames:
           type: integer
           format: int64
+          description: 저장된 전체 게임 수
           example: 5
         playingGames:
           type: integer
           format: int64
+          description: 진행 중(`PLAYING`)인 게임 수
           example: 3
         clearedGames:
           type: integer
           format: int64
+          description: 클리어(`CLEARED`)한 게임 수
           example: 1
         failedGames:
           type: integer
           format: int64
+          description: 실패(`FAILED`)한 게임 수
           example: 1
         highestFloor:
           type: integer
-          description: 모든 실행 중 가장 높은 현재 층. 실행이 없으면 0.
+          description: 모든 게임 중 가장 높은 현재 층. 게임이 없으면 0.
           example: 10
         clearRate:
           type: integer
-          description: 끝난 실행 중 클리어 비율(백분율, 반올림)
+          description: 끝난 게임 중 클리어 비율(백분율, 반올림)
           example: 50
 
     ErrorResponse:
@@ -717,13 +729,17 @@ components:
       properties:
         status:
           type: integer
+          description: HTTP 상태 코드
           example: 404
         error:
           type: string
+          description: 상태 코드의 표준 문구
           example: Not Found
         path:
           type: string
+          description: 요청한 경로
           example: /games/999
         message:
           type: string
-          example: 게임을 찾을 수 없습니다.
+          description: 사람이 읽을 수 있는 원인 설명. 게임 화면에 그대로 표시된다.
+          example: 게임을 찾을 수 없습니다. id=999
