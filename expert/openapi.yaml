@@ -89,6 +89,48 @@ info:
     4. 접속 중에는 presence 만료(90초)를 30초마다 heartbeat로 연장한다. 클라이언트는 15초마다 `ping`을 보낸다.
     5. 연결이 끊기면 마지막 상태를 저장하고 presence에서 제거한 뒤 `playerLeave`를 방송한다.
 
+    ## 접속 상태 저장소
+
+    지금 살아 있는 WebSocket 연결은 MySQL이 아니라 Redis에 둔다. `GET /worlds`의 `onlineCount`와
+    접속자 목록이 여기서 나온다.
+
+    | 항목 | 값 |
+    | --- | --- |
+    | 자료 구조 | Sorted Set |
+    | key | `world:{worldId}:presence` |
+    | member | WebSocket 연결 ID |
+    | score | 그 연결의 만료 시각 (epoch milliseconds) |
+    | 연결 유효 시간 | 마지막 등록 또는 heartbeat 이후 90초 |
+    | key TTL | 180초. 등록과 heartbeat 때마다 다시 건다 |
+
+    - **등록**: 접속이 확정되면 연결 ID를 만료 시각과 함께 넣고 key TTL을 건다.
+    - **heartbeat**: 서버가 30초마다 그 연결의 만료 시각과 key TTL을 갱신한다. 다른 연결의 만료 시각은 건드리지 않는다.
+    - **퇴장**: 그 연결 ID만 제거한다. 같은 월드의 다른 연결은 남는다.
+    - **접속자 수**: 현재 시각보다 이른 만료 시각의 원소를 먼저 제거한 뒤 남은 개수다. key가 없으면 0이다.
+
+    접속자 목록(`presenceList`)까지 제공하는 서버는 이름 색인을 하나 더 둔다.
+
+    | 항목 | 값 |
+    | --- | --- |
+    | 자료 구조 | Hash |
+    | key | `world:{worldId}:presence:names` |
+    | field | WebSocket 연결 ID |
+    | value | 닉네임 |
+
+    등록·heartbeat·퇴장은 두 key를 함께 다루고, 목록을 만들 때는 만료 원소를 제거한 뒤 살아 있는 연결 ID의
+    닉네임만 읽는다. Hash에 남은 오래된 field는 응답에 넣지 않는다.
+
+    ## 다중 서버 채팅
+
+    서버 여러 대가 같은 Redis를 쓸 때, 어느 서버에 붙은 클라이언트든 같은 월드의 채팅을 받도록 Redis Pub/Sub으로 전달한다.
+
+    - channel: `webcraft:chat` (월드 구분은 메시지의 `worldId`로 한다)
+    - MySQL 저장이 성공한 채팅만 한 번 발행한다. 발행한 서버는 WebSocket에 직접 방송하지 않는다.
+    - 모든 서버가 같은 channel을 구독하고, 받은 메시지의 `worldId`에 속한 자기 세션에만 `chat`으로 방송한다. 그래서 같은 채팅이 두 번 보이지 않는다.
+    - 오프라인 재전송이나 정확히 한 번 전달은 보장하지 않는다.
+
+    <SchemaDefinition schemaRef="#/components/schemas/ChatPublishEvent" />
+
     ## 클라이언트가 보내는 메시지
 
     과제 범위의 메시지다. `type` 값과 나머지 필드를 그대로 한 객체에 담아 보낸다.
@@ -142,6 +184,10 @@ info:
     ### emote · 손 흔들기
     세션당 3초 쿨다운. 초과분은 오류 없이 조용히 버린다.
     <SchemaDefinition schemaRef="#/components/schemas/WsEmote" />
+
+    ### presenceList · 접속자 목록 요청
+    응답은 요청한 세션에만 같은 `type`으로 온다.
+    <SchemaDefinition schemaRef="#/components/schemas/WsPresenceListRequest" />
 
     이 밖에 제작·상자·화로·거래·탈것 같은 게임플레이 입력이 백여 종 있으며 모두 제공 엔진이 처리한다.
     전체 목록과 필드는 배포판 `docs/API.md` 4장에 있고, wire 필드의 정본은 `WsMessages.java`와
@@ -210,6 +256,10 @@ info:
     ### emote · 손 흔들기 방송
     전원에게.
     <SchemaDefinition schemaRef="#/components/schemas/WsEmoteBroadcast" />
+
+    ### presenceList · 접속자 목록
+    나에게만. 만료된 연결을 제외한 살아 있는 접속자의 닉네임이다.
+    <SchemaDefinition schemaRef="#/components/schemas/WsPresenceList" />
 
     몹·투사체·인벤토리·제작 등 나머지 게임플레이 메시지는 모두 제공 엔진이 보내며 백여 종이 있다.
     전체 목록은 배포판 `docs/API.md` 4장에 있다.
@@ -1289,3 +1339,54 @@ components:
           type: string
           description: 손을 흔든 플레이어
       example: { type: emote, nickname: alex }
+
+    WsPresenceListRequest:
+      title: presenceList (요청)
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          const: presenceList
+          description: 메시지 종류
+      example: { type: presenceList }
+
+    WsPresenceList:
+      title: presenceList (응답)
+      type: object
+      required: [type, players]
+      properties:
+        type:
+          type: string
+          const: presenceList
+          description: 메시지 종류
+        players:
+          type: array
+          description: 접속 중인 닉네임. 대소문자를 무시한 사전순이며 대소문자만 다른 중복은 하나만 남긴다. 없으면 빈 배열
+          items:
+            type: string
+      example: { type: presenceList, players: [alex, steve] }
+
+    ChatPublishEvent:
+      title: 채팅 발행 메시지
+      type: object
+      description: Redis channel `webcraft:chat`에 발행하는 JSON
+      required: [worldId, sender, content, timestamp, originInstanceId]
+      properties:
+        worldId:
+          type: integer
+          format: int64
+          description: 채팅이 속한 월드
+        sender:
+          type: string
+          description: 보낸 플레이어 닉네임
+        content:
+          type: string
+          description: 내용
+        timestamp:
+          type: string
+          description: 저장 시각. WebSocket `chat.timestamp`와 같은 형식
+        originInstanceId:
+          type: string
+          description: 발행한 서버 인스턴스 식별자
+      example: { worldId: 1, sender: steve, content: 안녕하세요, timestamp: '2026-07-16T12:30:00', originInstanceId: server-8080 }
