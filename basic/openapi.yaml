@@ -17,8 +17,7 @@ info:
     | `PATCH` | [`/games/{gameId}`](#tag/게임/operation/renameGame) | `204` | 플레이어 이름 변경 |
     | `PUT` | [`/games/{gameId}/progress`](#tag/게임/operation/updateProgress) | `200` | 진행 필드와 전체 덱 저장 |
     | `DELETE` | [`/games/{gameId}`](#tag/게임/operation/deleteGame) | `204` | 게임과 덱 삭제 |
-    | `GET` | [`/games/search`](#tag/검색/operation/searchGames) | `200` | 조건 검색과 페이징 |
-    | `GET` | [`/games/stats`](#tag/검색/operation/getStats) | `200` | 전체 기록 집계 |
+    | `GET` | [`/rankings`](#tag/랭킹/operation/getRankings) | `200` | 검증을 통과한 클리어 기록의 순위 |
 
     ## 오류 응답
 
@@ -35,8 +34,57 @@ info:
 
     ## 선택 기능
 
-    `GET /games/search`와 `GET /games/stats`는 없어도 되는 API다. 서버가 `404`를 반환하면
-    클라이언트는 목록 페이징과 기록판을 숨기고 전체 목록으로 동작한다.
+    `GET /rankings`는 없어도 되는 API다. 서버가 `404`를 반환하면 클라이언트는 홈 화면의 랭킹 판을
+    숨긴다. 응답이 있지만 이 명세와 다르면(필드·타입이 다르거나 순위 결과가 틀리면) 클라이언트는
+    오류 창을 띄우고 게임을 시작하지 않는다.
+
+    ## 랭킹 원본 데이터
+
+    랭킹의 원본은 서버 DB가 아니라 아래 주소에 공개된 JSON 파일이다. 서버는 이 파일을 HTTP로 받아
+    [`GET /rankings`](#tag/랭킹/operation/getRankings)의 규칙대로 검증·정렬한 결과를 돌려준다.
+
+    ```
+    https://f-api.github.io/game-spring-api-docs/basic/rankings.json
+    ```
+
+    파일은 한 시즌의 제출 기록 전체를 제출 시각 순서로 담는다. 각 기록은 플레이어, 결과, 최종 보스전,
+    덱으로 이루어지며, 10층을 클리어하지 못한 기록은 `bossFight`가 `null`이다.
+
+    <SchemaDefinition schemaRef="#/components/schemas/RankingSource" />
+
+    <details class="card-types">
+    <summary>기록 예시 펼치기</summary>
+
+    ```json
+    {
+      "id": 5827,
+      "player": { "name": "재서기", "region": "JP" },
+      "result": { "clearedFloor": 10, "clearTimeSeconds": 300, "remainingHp": 12 },
+      "bossFight": {
+        "phases": [
+          { "phase": "THRONE", "turns": 3, "damageTaken": 9 },
+          { "phase": "UNBOUND", "turns": 4, "damageTaken": 21 },
+          { "phase": "ECLIPSE", "turns": 6, "damageTaken": 9 }
+        ],
+        "finishingCard": "SUNDER"
+      },
+      "submittedAt": "2026-08-01T00:38:00Z",
+      "deck": [
+        { "cardType": "STRIKE", "acquiredFloor": 0 },
+        { "cardType": "STRIKE", "acquiredFloor": 0 },
+        { "cardType": "HEART_PIERCE", "acquiredFloor": 0 },
+        { "cardType": "GUARD", "acquiredFloor": 0 },
+        { "cardType": "MIST_KNOT", "acquiredFloor": 0 },
+        { "cardType": "QUICK_SLASH", "acquiredFloor": 0 },
+        { "cardType": "WARDING_SLASH", "acquiredFloor": 0 },
+        { "cardType": "BLOOD_RUNE", "acquiredFloor": 0 },
+        { "cardType": "MEND", "acquiredFloor": 0 },
+        { "cardType": "SUNDER", "acquiredFloor": 1 },
+        { "cardType": "SHATTER_BOLT", "acquiredFloor": 2 }
+      ]
+    }
+    ```
+    </details>
 
     ## 카드 타입
 
@@ -92,8 +140,8 @@ servers:
 tags:
   - name: 게임
     description: 게임 생성, 조회, 이름 변경, 진행 저장, 삭제
-  - name: 검색
-    description: 조건 검색·페이징과 전체 기록 집계
+  - name: 랭킹
+    description: 공개된 클리어 기록을 검증해 순위로 제공
 
 paths:
   /games:
@@ -277,99 +325,61 @@ paths:
                 message: 이미 끝난 여정은 진행을 저장할 수 없습니다. id=12
                 path: /games/12/progress
 
-  /games/search:
+  /rankings:
     get:
-      tags: [검색]
-      summary: 게임 조건 검색과 페이징
+      tags: [랭킹]
+      summary: 검증된 클리어 랭킹
       description: |
-        상태, 최소 층, 이름 키워드 조건을 조합해 게임을 검색하고 ID 내림차순으로 페이징한다.
-        조건을 모두 생략하면 전체를 대상으로 한다.
-      operationId: searchGames
-      parameters:
-        - name: status
-          in: query
-          required: false
-          description: 이 상태인 게임만 포함
-          schema:
-            type: string
-            enum: [PLAYING, CLEARED, FAILED]
-            x-enumDescriptions:
-              PLAYING: 진행 중
-              CLEARED: 10층까지 클리어
-              FAILED: 도중에 실패
-        - name: minFloor
-          in: query
-          required: false
-          description: 이 층 이상(`currentFloor >= minFloor`)인 게임만 포함
-          schema:
-            type: integer
-        - name: keyword
-          in: query
-          required: false
-          description: 플레이어 이름 부분 일치(대소문자 무시). 앞뒤 공백은 지우고, 공백만이면 조건을 무시한다
-          schema:
-            type: string
-        - name: page
-          in: query
-          required: false
-          description: 0부터 시작하는 페이지 번호
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          required: false
-          description: 페이지 크기
-          schema:
-            type: integer
-            default: 10
-      responses:
-        '200':
-          description: 페이징된 게임 요약
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GamePageResponse'
-              example:
-                content:
-                  - id: 12
-                    playerName: 밤의 후계자
-                    currentFloor: 4
-                    currentHp: 61
-                    phase: BATTLE
-                    status: PLAYING
-                    deckSize: 12
-                    createdAt: '2026-09-03T18:20:11'
-                    updatedAt: '2026-09-03T19:02:45'
-                page: 0
-                size: 3
-                totalElements: 7
-                totalPages: 3
-                hasNext: true
+        [랭킹 원본 데이터](#section/랭킹-원본-데이터)를 받아 아래 순서로 처리한 결과를 돌려준다.
 
-  /games/stats:
-    get:
-      tags: [검색]
-      summary: 전체 기록 집계
-      description: |
-        저장된 모든 게임의 집계를 반환한다. 게임이 없으면 모든 값이 0이다.
-        `clearRate`는 끝난 게임(`CLEARED`+`FAILED`) 중 `CLEARED`의 비율을 반올림한
-        백분율이다.
-      operationId: getStats
+        **1. 순위 대상.** `result.clearedFloor`가 `10`인 기록만 순위 대상이다. 그 밖의 기록은
+        순위에도, `excludedCount`에도 들어가지 않는다.
+
+        **2. 정상 기록 조건.** 순위 대상 중 아래를 하나라도 어기는 기록은 이상 기록으로 보고 제외하며,
+        제외한 수가 `excludedCount`다.
+
+        | 항목 | 정상 기록의 조건 |
+        | --- | --- |
+        | 클리어 시간 | `clearTimeSeconds`가 층당 30초 이상, 즉 `clearedFloor × 30` 이상 |
+        | 남은 HP | `remainingHp`가 1 이상 99 이하 |
+        | 덱 크기 | `deck`이 9장 이상 20장 이하 |
+        | 카드 타입 | 모든 `deck[].cardType`이 [카드 타입](#section/카드-타입) 목록에 있는 값 |
+        | 획득 층 | 모든 `deck[].acquiredFloor`가 0 이상 9 이하 |
+        | 보스 페이즈 | `bossFight.phases`가 `THRONE`, `UNBOUND`, `ECLIPSE` 순서로 정확히 3개이고, 각 `turns`가 1 이상 |
+        | 마무리 카드 | `bossFight.finishingCard`가 그 기록의 `deck`에 있는 카드 타입 |
+
+        **3. 정렬.** 정상 기록을 `clearTimeSeconds` 오름차순, 같으면 `remainingHp` 내림차순,
+        그래도 같으면 `id` 오름차순으로 정렬한다.
+
+        **4. 플레이어당 하나.** 같은 `player.name`의 정상 기록이 여러 개면 정렬 순서에서 앞선 하나만
+        남긴다. 남은 기록에 1부터 순위를 매긴다.
+
+        `bossTurns`는 세 페이즈 `turns`의 합, `deckSize`는 `deck`의 카드 수다.
+      operationId: getRankings
       responses:
         '200':
-          description: 기록 집계
+          description: 검증·정렬된 랭킹
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GameStatsResponse'
+                $ref: '#/components/schemas/RankingResponse'
               example:
-                totalGames: 5
-                playingGames: 3
-                clearedGames: 1
-                failedGames: 1
-                highestFloor: 10
-                clearRate: 50
+                season: '2026-09'
+                totalRecords: 198
+                excludedCount: 30
+                entries:
+                  - rank: 1
+                    playerName: 재서기
+                    clearTimeSeconds: 300
+                    remainingHp: 12
+                    bossTurns: 13
+                    deckSize: 11
+                  - rank: 2
+                    playerName: 안개칼날
+                    clearTimeSeconds: 863
+                    remainingHp: 74
+                    bossTurns: 15
+                    deckSize: 20
 
 components:
   parameters:
@@ -595,7 +605,7 @@ components:
             FAILED: 도중에 HP가 0이 되어 실패했다.
         deckSize:
           type: integer
-          description: 저장된 덱의 카드 수. 목록·검색 응답에만 있고 상세 응답에는 없다(덱 자체가 있으므로)
+          description: 저장된 덱의 카드 수. 목록 응답에만 있고 상세 응답에는 없다(덱 자체가 있으므로)
           example: 12
         createdAt:
           type: string
@@ -619,71 +629,186 @@ components:
               items:
                 $ref: '#/components/schemas/CardResponse'
 
-    GamePageResponse:
-      title: 검색 결과 페이지
+    RankingResponse:
+      title: 랭킹 응답
       type: object
-      description: ID 내림차순 페이징 응답
-      required: [content, page, size, totalElements, totalPages, hasNext]
+      required: [season, totalRecords, excludedCount, entries]
       properties:
-        content:
+        season:
+          type: string
+          description: 원본 데이터의 `season` 그대로
+          example: '2026-09'
+        totalRecords:
+          type: integer
+          description: 원본 데이터의 전체 기록 수 (`records` 길이)
+          example: 198
+        excludedCount:
+          type: integer
+          description: 순위 대상 중 정상 기록 조건에 어긋나 제외한 기록 수
+          example: 30
+        entries:
           type: array
+          description: 순위 오름차순 목록
           items:
-            $ref: '#/components/schemas/GameSummaryResponse'
-        page:
-          type: integer
-          description: 현재 페이지 번호 (0부터)
-          example: 0
-        size:
-          type: integer
-          description: 요청한 페이지 크기
-          example: 3
-        totalElements:
-          type: integer
-          format: int64
-          description: 조건에 맞는 전체 게임 수
-          example: 7
-        totalPages:
-          type: integer
-          description: 전체 페이지 수
-          example: 3
-        hasNext:
-          type: boolean
-          description: 다음 페이지가 있는지
-          example: true
+            $ref: '#/components/schemas/RankingEntryResponse'
 
-    GameStatsResponse:
-      title: 기록 집계
+    RankingEntryResponse:
+      title: 랭킹 항목
       type: object
-      required: [totalGames, playingGames, clearedGames, failedGames, highestFloor, clearRate]
+      required: [rank, playerName, clearTimeSeconds, remainingHp, bossTurns, deckSize]
       properties:
-        totalGames:
+        rank:
           type: integer
-          format: int64
-          description: 저장된 전체 게임 수
-          example: 5
-        playingGames:
-          type: integer
-          format: int64
-          description: 진행 중(`PLAYING`)인 게임 수
-          example: 3
-        clearedGames:
-          type: integer
-          format: int64
-          description: 클리어(`CLEARED`)한 게임 수
+          description: 1부터 시작하는 순위
           example: 1
-        failedGames:
+        playerName:
+          type: string
+          description: 원본의 `player.name`
+          example: 재서기
+        clearTimeSeconds:
+          type: integer
+          description: 클리어까지 걸린 시간(초)
+          example: 300
+        remainingHp:
+          type: integer
+          description: 클리어 시점의 남은 HP
+          example: 12
+        bossTurns:
+          type: integer
+          description: 최종 보스전 세 페이즈 `turns`의 합
+          example: 13
+        deckSize:
+          type: integer
+          description: 클리어 시점의 덱 카드 수
+          example: 11
+
+    RankingSource:
+      title: 랭킹 원본 파일
+      type: object
+      required: [season, records]
+      properties:
+        season:
+          type: string
+          description: 시즌 식별자
+          example: '2026-09'
+        records:
+          type: array
+          description: 제출 시각 순서의 기록 전체
+          items:
+            $ref: '#/components/schemas/RankingRecord'
+
+    RankingRecord:
+      title: 제출 기록
+      type: object
+      required: [id, player, result, bossFight, submittedAt, deck]
+      properties:
+        id:
           type: integer
           format: int64
-          description: 실패(`FAILED`)한 게임 수
-          example: 1
-        highestFloor:
+          description: 기록 ID. 파일 안에서 고유하다
+          example: 5827
+        player:
+          $ref: '#/components/schemas/RankingPlayer'
+        result:
+          $ref: '#/components/schemas/RankingResult'
+        bossFight:
+          description: 최종 보스전 기록. 10층을 클리어하지 못한 기록은 `null`
+          oneOf:
+            - $ref: '#/components/schemas/RankingBossFight'
+            - type: 'null'
+        submittedAt:
+          type: string
+          format: date-time
+          description: 제출 시각(UTC)
+          example: '2026-08-01T00:38:00Z'
+        deck:
+          type: array
+          description: 게임이 끝난 시점의 덱. 시작 덱 9장은 `acquiredFloor`가 0이다
+          items:
+            $ref: '#/components/schemas/RankingCard'
+
+    RankingPlayer:
+      title: 제출 플레이어
+      type: object
+      required: [name, region]
+      properties:
+        name:
+          type: string
+          description: 플레이어 이름. 한 플레이어가 여러 기록을 제출할 수 있다
+          example: 재서기
+        region:
+          type: string
+          description: 지역 코드
+          example: JP
+
+    RankingResult:
+      title: 게임 결과
+      type: object
+      required: [clearedFloor, clearTimeSeconds, remainingHp]
+      properties:
+        clearedFloor:
           type: integer
-          description: 모든 게임 중 가장 높은 현재 층. 게임이 없으면 0.
+          description: 클리어한 마지막 층. 10이면 성채를 정복한 것이다
           example: 10
-        clearRate:
+        clearTimeSeconds:
           type: integer
-          description: 끝난 게임 중 클리어 비율(백분율, 반올림)
-          example: 50
+          description: 게임 시작부터 끝까지 걸린 시간(초)
+          example: 300
+        remainingHp:
+          type: integer
+          description: 게임이 끝난 시점의 HP. 클리어하지 못한 기록은 0이다
+          example: 12
+
+    RankingBossFight:
+      title: 최종 보스전
+      type: object
+      required: [phases, finishingCard]
+      properties:
+        phases:
+          type: array
+          description: 페이즈별 기록. 정상 기록은 `THRONE`, `UNBOUND`, `ECLIPSE` 순서로 3개다
+          items:
+            $ref: '#/components/schemas/RankingBossPhase'
+        finishingCard:
+          type: string
+          description: 보스를 쓰러뜨린 카드의 카드 타입
+          example: SUNDER
+
+    RankingBossPhase:
+      title: 보스 페이즈 기록
+      type: object
+      required: [phase, turns, damageTaken]
+      properties:
+        phase:
+          type: string
+          description: 페이즈 이름
+          enum: [THRONE, UNBOUND, ECLIPSE]
+          x-enumDescriptions:
+            THRONE: 피눈물의 신사
+            UNBOUND: 찢어진 연회
+            ECLIPSE: 태어나지 못한 왕
+        turns:
+          type: integer
+          description: 이 페이즈에서 쓴 턴 수
+          example: 3
+        damageTaken:
+          type: integer
+          description: 이 페이즈에서 받은 피해량
+          example: 9
+
+    RankingCard:
+      title: 기록의 카드
+      type: object
+      required: [cardType, acquiredFloor]
+      properties:
+        cardType:
+          type: string
+          description: 카드 타입 값
+          example: SUNDER
+        acquiredFloor:
+          type: integer
+          description: 카드를 얻은 층. 시작 덱은 0
+          example: 1
 
     ErrorResponse:
       title: 오류 응답
