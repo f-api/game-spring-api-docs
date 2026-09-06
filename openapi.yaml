@@ -38,41 +38,7 @@ info:
     `GET /games/search`와 `GET /games/stats`는 없어도 되는 API다. 서버가 `404`를 반환하면
     클라이언트는 목록 페이징과 기록판을 숨기고 전체 목록으로 동작한다.
 
-    ## 데이터 모델
-
-    요청과 응답에 쓰이는 객체다. 각 API 설명에서도 같은 내용을 펼쳐 볼 수 있다.
-
-    ### 게임 생성 요청
-    <SchemaDefinition schemaRef="#/components/schemas/CreateRequest" />
-
-    ### 요청 카드
-    <SchemaDefinition schemaRef="#/components/schemas/RunCardRequest" />
-
-    ### 진행 저장 요청
-    <SchemaDefinition schemaRef="#/components/schemas/ProgressRequest" />
-
-    ### 이름 변경 요청
-    <SchemaDefinition schemaRef="#/components/schemas/RenameRequest" />
-
-    ### 게임 요약
-    <SchemaDefinition schemaRef="#/components/schemas/GameSummaryResponse" />
-
-    ### 게임 상세
-    <SchemaDefinition schemaRef="#/components/schemas/GameDetailResponse" />
-
-    ### 카드
-    <SchemaDefinition schemaRef="#/components/schemas/CardResponse" />
-
-    ### 검색 결과 페이지
-    <SchemaDefinition schemaRef="#/components/schemas/GamePageResponse" />
-
-    ### 기록 집계
-    <SchemaDefinition schemaRef="#/components/schemas/GameStatsResponse" />
-
-    ### 오류 응답
-    <SchemaDefinition schemaRef="#/components/schemas/ErrorResponse" />
-
-    ### 카드 타입
+    ## 카드 타입
 
     `cardType`에 들어가는 값이다. 서버는 문자열로 저장만 하고, 카드의 효과와 표시 이름은 게임
     클라이언트가 정한다. 시작 덱은 `STRIKE` 2장, `HEART_PIERCE`, `GUARD`, `MIST_KNOT`, `QUICK_SLASH`,
@@ -487,7 +453,7 @@ components:
           type: string
           description: |
             카드 타입. 서버는 저장만 하고 해석하지 않으며, 값의 목록은 게임 클라이언트가 정한다.
-            현재 쓰이는 값은 데이터 모델의 "카드 타입" 표에 있다. 공백만으로 된 값은 허용하지 않는다.
+            현재 쓰이는 값은 "카드 타입" 절에 있다. 공백만으로 된 값은 허용하지 않는다.
           minLength: 1
           example: STRIKE
         acquiredFloor:
@@ -509,7 +475,7 @@ components:
           example: 31
         cardType:
           type: string
-          description: 카드 타입. 값의 목록은 데이터 모델의 "카드 타입" 표에 있다.
+          description: 카드 타입. 값의 목록은 "카드 타입" 절에 있다.
           example: STRIKE
         acquiredFloor:
           type: integer
