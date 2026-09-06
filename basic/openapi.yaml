@@ -58,29 +58,109 @@ info:
     ```json
     {
       "id": 5827,
-      "player": { "name": "재서기", "region": "JP" },
-      "result": { "clearedFloor": 10, "clearTimeSeconds": 300, "remainingHp": 12 },
+      "player": {
+        "name": "재서기",
+        "region": "JP"
+      },
+      "result": {
+        "clearedFloor": 10,
+        "clearTimeSeconds": 300,
+        "remainingHp": 12
+      },
       "bossFight": {
         "phases": [
-          { "phase": "THRONE", "turns": 3, "damageTaken": 9 },
-          { "phase": "UNBOUND", "turns": 4, "damageTaken": 21 },
-          { "phase": "ECLIPSE", "turns": 6, "damageTaken": 9 }
+          {
+            "phase": "THRONE",
+            "turns": 3,
+            "damageTaken": 9
+          },
+          {
+            "phase": "UNBOUND",
+            "turns": 4,
+            "damageTaken": 21
+          },
+          {
+            "phase": "ECLIPSE",
+            "turns": 6,
+            "damageTaken": 9
+          }
         ],
         "finishingCard": "SUNDER"
       },
       "submittedAt": "2026-08-01T00:38:00Z",
       "deck": [
-        { "cardType": "STRIKE", "acquiredFloor": 0 },
-        { "cardType": "STRIKE", "acquiredFloor": 0 },
-        { "cardType": "HEART_PIERCE", "acquiredFloor": 0 },
-        { "cardType": "GUARD", "acquiredFloor": 0 },
-        { "cardType": "MIST_KNOT", "acquiredFloor": 0 },
-        { "cardType": "QUICK_SLASH", "acquiredFloor": 0 },
-        { "cardType": "WARDING_SLASH", "acquiredFloor": 0 },
-        { "cardType": "BLOOD_RUNE", "acquiredFloor": 0 },
-        { "cardType": "MEND", "acquiredFloor": 0 },
-        { "cardType": "SUNDER", "acquiredFloor": 1 },
-        { "cardType": "SHATTER_BOLT", "acquiredFloor": 2 }
+        {
+          "cardType": "STRIKE",
+          "acquiredFloor": 0
+        },
+        {
+          "cardType": "STRIKE",
+          "acquiredFloor": 0
+        },
+        {
+          "cardType": "HEART_PIERCE",
+          "acquiredFloor": 0
+        },
+        {
+          "cardType": "GUARD",
+          "acquiredFloor": 0
+        },
+        {
+          "cardType": "MIST_KNOT",
+          "acquiredFloor": 0
+        },
+        {
+          "cardType": "QUICK_SLASH",
+          "acquiredFloor": 0
+        },
+        {
+          "cardType": "WARDING_SLASH",
+          "acquiredFloor": 0
+        },
+        {
+          "cardType": "BLOOD_RUNE",
+          "acquiredFloor": 0
+        },
+        {
+          "cardType": "MEND",
+          "acquiredFloor": 0
+        },
+        {
+          "cardType": "LINGERING_THUNDER",
+          "acquiredFloor": 1
+        },
+        {
+          "cardType": "QUICK_SLASH",
+          "acquiredFloor": 2
+        },
+        {
+          "cardType": "DECAPITATE",
+          "acquiredFloor": 3
+        },
+        {
+          "cardType": "NIGHT_FEAST",
+          "acquiredFloor": 4
+        },
+        {
+          "cardType": "LAST_STAND",
+          "acquiredFloor": 5
+        },
+        {
+          "cardType": "SUNDER",
+          "acquiredFloor": 5
+        },
+        {
+          "cardType": "LAST_STAND",
+          "acquiredFloor": 6
+        },
+        {
+          "cardType": "RUNE_SURGE",
+          "acquiredFloor": 8
+        },
+        {
+          "cardType": "SHATTER_ARMOR",
+          "acquiredFloor": 9
+        }
       ]
     }
     ```
@@ -373,13 +453,13 @@ paths:
                     clearTimeSeconds: 300
                     remainingHp: 12
                     bossTurns: 13
-                    deckSize: 11
+                    deckSize: 18
                   - rank: 2
                     playerName: 안개칼날
                     clearTimeSeconds: 863
                     remainingHp: 74
-                    bossTurns: 15
-                    deckSize: 20
+                    bossTurns: 12
+                    deckSize: 15
 
 components:
   parameters:
@@ -680,7 +760,7 @@ components:
         deckSize:
           type: integer
           description: 클리어 시점의 덱 카드 수
-          example: 11
+          example: 18
 
     RankingSource:
       title: 랭킹 원본 파일
