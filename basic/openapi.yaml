@@ -17,7 +17,7 @@ info:
     | `PATCH` | [`/games/{gameId}`](#tag/게임/operation/renameGame) | `204` | 플레이어 이름 변경 |
     | `PUT` | [`/games/{gameId}/progress`](#tag/게임/operation/updateProgress) | `200` | 진행 필드와 전체 덱 저장 |
     | `DELETE` | [`/games/{gameId}`](#tag/게임/operation/deleteGame) | `204` | 게임과 덱 삭제 |
-    | `GET` | [`/rankings`](#tag/랭킹/operation/getRankings) | `200` | 검증을 통과한 클리어 기록의 순위 |
+    | `GET` | [`/rankings`](#tag/랭킹/operation/getRankings) | `200` | 시즌 클리어 랭킹 |
 
     ## 오류 응답
 
@@ -93,7 +93,7 @@ tags:
   - name: 게임
     description: 게임 생성, 조회, 이름 변경, 진행 저장, 삭제
   - name: 랭킹
-    description: 공개된 클리어 기록을 검증해 순위로 제공
+    description: 시즌 클리어 랭킹 조회
 
 paths:
   /games:
@@ -280,7 +280,7 @@ paths:
   /rankings:
     get:
       tags: [랭킹]
-      summary: 검증된 클리어 랭킹
+      summary: 랭킹 조회
       description: |
         한 시즌 동안 제출된 클리어 기록의 순위다. 서버가 수집한 기록을 아래 규칙으로 걸러 돌려준다.
 
@@ -310,7 +310,7 @@ paths:
       operationId: getRankings
       responses:
         '200':
-          description: 검증·정렬된 랭킹
+          description: 시즌 클리어 랭킹
           content:
             application/json:
               schema:
