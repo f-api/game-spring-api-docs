@@ -38,134 +38,6 @@ info:
     숨긴다. 응답이 있지만 이 명세와 다르면(필드·타입이 다르거나 순위 결과가 틀리면) 클라이언트는
     오류 창을 띄우고 게임을 시작하지 않는다.
 
-    ## 랭킹 원본 데이터
-
-    랭킹의 원본은 서버 DB가 아니라 아래 주소에 공개된 JSON 파일이다. 서버는 이 파일을 HTTP로 받아
-    [`GET /rankings`](#tag/랭킹/operation/getRankings)의 규칙대로 검증·정렬한 결과를 돌려준다.
-
-    ```
-    https://f-api.github.io/game-spring-api-docs/basic/rankings.json
-    ```
-
-    파일은 한 시즌의 제출 기록 전체를 제출 시각 순서로 담는다. 각 기록은 플레이어, 결과, 최종 보스전,
-    덱으로 이루어지며, 10층을 클리어하지 못한 기록은 `bossFight`가 `null`이다.
-
-    <SchemaDefinition schemaRef="#/components/schemas/RankingSource" />
-
-    <details class="card-types">
-    <summary>기록 예시 펼치기</summary>
-
-    ```json
-    {
-      "id": 5827,
-      "player": {
-        "name": "재서기",
-        "region": "JP"
-      },
-      "result": {
-        "clearedFloor": 10,
-        "clearTimeSeconds": 300,
-        "remainingHp": 12
-      },
-      "bossFight": {
-        "phases": [
-          {
-            "phase": "THRONE",
-            "turns": 3,
-            "damageTaken": 9
-          },
-          {
-            "phase": "UNBOUND",
-            "turns": 4,
-            "damageTaken": 21
-          },
-          {
-            "phase": "ECLIPSE",
-            "turns": 6,
-            "damageTaken": 9
-          }
-        ],
-        "finishingCard": "SUNDER"
-      },
-      "submittedAt": "2026-08-01T00:38:00Z",
-      "deck": [
-        {
-          "cardType": "STRIKE",
-          "acquiredFloor": 0
-        },
-        {
-          "cardType": "STRIKE",
-          "acquiredFloor": 0
-        },
-        {
-          "cardType": "HEART_PIERCE",
-          "acquiredFloor": 0
-        },
-        {
-          "cardType": "GUARD",
-          "acquiredFloor": 0
-        },
-        {
-          "cardType": "MIST_KNOT",
-          "acquiredFloor": 0
-        },
-        {
-          "cardType": "QUICK_SLASH",
-          "acquiredFloor": 0
-        },
-        {
-          "cardType": "WARDING_SLASH",
-          "acquiredFloor": 0
-        },
-        {
-          "cardType": "BLOOD_RUNE",
-          "acquiredFloor": 0
-        },
-        {
-          "cardType": "MEND",
-          "acquiredFloor": 0
-        },
-        {
-          "cardType": "LINGERING_THUNDER",
-          "acquiredFloor": 1
-        },
-        {
-          "cardType": "QUICK_SLASH",
-          "acquiredFloor": 2
-        },
-        {
-          "cardType": "DECAPITATE",
-          "acquiredFloor": 3
-        },
-        {
-          "cardType": "NIGHT_FEAST",
-          "acquiredFloor": 4
-        },
-        {
-          "cardType": "LAST_STAND",
-          "acquiredFloor": 5
-        },
-        {
-          "cardType": "SUNDER",
-          "acquiredFloor": 5
-        },
-        {
-          "cardType": "LAST_STAND",
-          "acquiredFloor": 6
-        },
-        {
-          "cardType": "RUNE_SURGE",
-          "acquiredFloor": 8
-        },
-        {
-          "cardType": "SHATTER_ARMOR",
-          "acquiredFloor": 9
-        }
-      ]
-    }
-    ```
-    </details>
-
     ## 카드 타입
 
     `cardType`에 들어가는 값이다. 서버는 문자열로 저장만 하고, 카드의 효과와 표시 이름은 게임
@@ -410,9 +282,9 @@ paths:
       tags: [랭킹]
       summary: 검증된 클리어 랭킹
       description: |
-        [랭킹 원본 데이터](#section/랭킹-원본-데이터)를 받아 아래 순서로 처리한 결과를 돌려준다.
+        한 시즌 동안 제출된 클리어 기록의 순위다. 서버가 수집한 기록을 아래 규칙으로 걸러 돌려준다.
 
-        **1. 순위 대상.** `result.clearedFloor`가 `10`인 기록만 순위 대상이다. 그 밖의 기록은
+        **1. 순위 대상.** 10층(최종 보스)까지 클리어한 기록만 순위 대상이다. 도중에 끝난 기록은
         순위에도, `excludedCount`에도 들어가지 않는다.
 
         **2. 정상 기록 조건.** 순위 대상 중 아래를 하나라도 어기는 기록은 이상 기록으로 보고 제외하며,
@@ -420,21 +292,21 @@ paths:
 
         | 항목 | 정상 기록의 조건 |
         | --- | --- |
-        | 클리어 시간 | `clearTimeSeconds`가 층당 30초 이상, 즉 `clearedFloor × 30` 이상 |
-        | 남은 HP | `remainingHp`가 1 이상 99 이하 |
-        | 덱 크기 | `deck`이 9장 이상 20장 이하 |
-        | 카드 타입 | 모든 `deck[].cardType`이 [카드 타입](#section/카드-타입) 목록에 있는 값 |
-        | 획득 층 | 모든 `deck[].acquiredFloor`가 0 이상 9 이하 |
-        | 보스 페이즈 | `bossFight.phases`가 `THRONE`, `UNBOUND`, `ECLIPSE` 순서로 정확히 3개이고, 각 `turns`가 1 이상 |
-        | 마무리 카드 | `bossFight.finishingCard`가 그 기록의 `deck`에 있는 카드 타입 |
+        | 클리어 시간 | 층당 30초 이상, 즉 10층 클리어는 300초 이상 |
+        | 남은 HP | 1 이상 99 이하 |
+        | 덱 크기 | 9장 이상 20장 이하 |
+        | 카드 타입 | 덱의 모든 카드가 [카드 타입](#section/카드-타입) 목록에 있는 값 |
+        | 획득 층 | 덱의 모든 카드가 0층(시작 덱)부터 9층 사이에서 획득됨 |
+        | 보스 페이즈 | 최종 보스전이 `THRONE`, `UNBOUND`, `ECLIPSE` 세 페이즈를 순서대로 거쳤고, 각 페이즈가 1턴 이상 |
+        | 마무리 카드 | 보스를 쓰러뜨린 카드가 그 기록의 덱에 있는 카드 |
 
-        **3. 정렬.** 정상 기록을 `clearTimeSeconds` 오름차순, 같으면 `remainingHp` 내림차순,
-        그래도 같으면 `id` 오름차순으로 정렬한다.
+        **3. 정렬.** 정상 기록을 클리어 시간 오름차순, 같으면 남은 HP 내림차순, 그래도 같으면 기록 ID
+        오름차순으로 정렬한다.
 
-        **4. 플레이어당 하나.** 같은 `player.name`의 정상 기록이 여러 개면 정렬 순서에서 앞선 하나만
-        남긴다. 남은 기록에 1부터 순위를 매긴다.
+        **4. 플레이어당 하나.** 같은 플레이어의 정상 기록이 여러 개면 정렬 순서에서 앞선 하나만 남긴다.
+        남은 기록에 1부터 순위를 매긴다.
 
-        `bossTurns`는 세 페이즈 `turns`의 합, `deckSize`는 `deck`의 카드 수다.
+        `bossTurns`는 세 페이즈에서 쓴 턴의 합, `deckSize`는 클리어 시점의 덱 카드 수다.
       operationId: getRankings
       responses:
         '200':
@@ -716,11 +588,11 @@ components:
       properties:
         season:
           type: string
-          description: 원본 데이터의 `season` 그대로
+          description: 시즌 식별자
           example: '2026-09'
         totalRecords:
           type: integer
-          description: 원본 데이터의 전체 기록 수 (`records` 길이)
+          description: 시즌에 제출된 전체 기록 수
           example: 198
         excludedCount:
           type: integer
@@ -743,7 +615,7 @@ components:
           example: 1
         playerName:
           type: string
-          description: 원본의 `player.name`
+          description: 플레이어 이름
           example: 재서기
         clearTimeSeconds:
           type: integer
@@ -761,134 +633,6 @@ components:
           type: integer
           description: 클리어 시점의 덱 카드 수
           example: 18
-
-    RankingSource:
-      title: 랭킹 원본 파일
-      type: object
-      required: [season, records]
-      properties:
-        season:
-          type: string
-          description: 시즌 식별자
-          example: '2026-09'
-        records:
-          type: array
-          description: 제출 시각 순서의 기록 전체
-          items:
-            $ref: '#/components/schemas/RankingRecord'
-
-    RankingRecord:
-      title: 제출 기록
-      type: object
-      required: [id, player, result, bossFight, submittedAt, deck]
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: 기록 ID. 파일 안에서 고유하다
-          example: 5827
-        player:
-          $ref: '#/components/schemas/RankingPlayer'
-        result:
-          $ref: '#/components/schemas/RankingResult'
-        bossFight:
-          description: 최종 보스전 기록. 10층을 클리어하지 못한 기록은 `null`
-          oneOf:
-            - $ref: '#/components/schemas/RankingBossFight'
-            - type: 'null'
-        submittedAt:
-          type: string
-          format: date-time
-          description: 제출 시각(UTC)
-          example: '2026-08-01T00:38:00Z'
-        deck:
-          type: array
-          description: 게임이 끝난 시점의 덱. 시작 덱 9장은 `acquiredFloor`가 0이다
-          items:
-            $ref: '#/components/schemas/RankingCard'
-
-    RankingPlayer:
-      title: 제출 플레이어
-      type: object
-      required: [name, region]
-      properties:
-        name:
-          type: string
-          description: 플레이어 이름. 한 플레이어가 여러 기록을 제출할 수 있다
-          example: 재서기
-        region:
-          type: string
-          description: 지역 코드
-          example: JP
-
-    RankingResult:
-      title: 게임 결과
-      type: object
-      required: [clearedFloor, clearTimeSeconds, remainingHp]
-      properties:
-        clearedFloor:
-          type: integer
-          description: 클리어한 마지막 층. 10이면 성채를 정복한 것이다
-          example: 10
-        clearTimeSeconds:
-          type: integer
-          description: 게임 시작부터 끝까지 걸린 시간(초)
-          example: 300
-        remainingHp:
-          type: integer
-          description: 게임이 끝난 시점의 HP. 클리어하지 못한 기록은 0이다
-          example: 12
-
-    RankingBossFight:
-      title: 최종 보스전
-      type: object
-      required: [phases, finishingCard]
-      properties:
-        phases:
-          type: array
-          description: 페이즈별 기록. 정상 기록은 `THRONE`, `UNBOUND`, `ECLIPSE` 순서로 3개다
-          items:
-            $ref: '#/components/schemas/RankingBossPhase'
-        finishingCard:
-          type: string
-          description: 보스를 쓰러뜨린 카드의 카드 타입
-          example: SUNDER
-
-    RankingBossPhase:
-      title: 보스 페이즈 기록
-      type: object
-      required: [phase, turns, damageTaken]
-      properties:
-        phase:
-          type: string
-          description: 페이즈 이름
-          enum: [THRONE, UNBOUND, ECLIPSE]
-          x-enumDescriptions:
-            THRONE: 피눈물의 신사
-            UNBOUND: 찢어진 연회
-            ECLIPSE: 태어나지 못한 왕
-        turns:
-          type: integer
-          description: 이 페이즈에서 쓴 턴 수
-          example: 3
-        damageTaken:
-          type: integer
-          description: 이 페이즈에서 받은 피해량
-          example: 9
-
-    RankingCard:
-      title: 기록의 카드
-      type: object
-      required: [cardType, acquiredFloor]
-      properties:
-        cardType:
-          type: string
-          description: 카드 타입 값
-          example: SUNDER
-        acquiredFloor:
-          type: integer
-          description: 카드를 얻은 층. 시작 덱은 0
-          example: 1
 
     ErrorResponse:
       title: 오류 응답
