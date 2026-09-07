@@ -19,7 +19,7 @@ info:
     | `DELETE` | [`/games/{gameId}`](#tag/게임/operation/deleteGame) | `204` | 게임과 덱 삭제 |
     | `GET` | [`/rankings`](#tag/랭킹/operation/getRankings) | `200` | 시즌 클리어 랭킹 |
 
-    ## 오류 응답
+    ## 에러 응답
 
     실패한 요청은 상태 코드와 함께 아래 형식의 본문을 돌려준다. `message`는 사람이 읽을 수 있는
     원인 설명이며, 게임 클라이언트는 이 문자열을 화면에 그대로 표시한다.
@@ -36,7 +36,7 @@ info:
 
     `GET /rankings`는 없어도 되는 API다. 서버가 `404`를 반환하면 클라이언트는 저장된 여정 화면의 랭킹 패널을
     숨긴다. 응답이 있지만 이 명세와 다르면(필드·타입이 다르거나 순위 결과가 틀리면) 클라이언트는
-    오류 창을 띄우고 게임을 시작하지 않는다.
+    에러 창을 띄우고 게임을 시작하지 않는다.
 
     ## 카드 타입
 
@@ -653,10 +653,10 @@ components:
           example: 20
 
     ErrorResponse:
-      title: 오류 응답
+      title: 에러 응답
       type: object
       description: |
-        오류 응답 형식이다. `message`는 사람이 읽을 수 있는 원인 설명이며, 있으면 게임
+        에러 응답 형식이다. `message`는 사람이 읽을 수 있는 원인 설명이며, 있으면 게임
         클라이언트가 그대로 화면에 표시한다.
       required: [status, error, path]
       properties:
