@@ -34,7 +34,7 @@ info:
 
     ## 선택 기능
 
-    `GET /rankings`는 없어도 되는 API다. 서버가 `404`를 반환하면 클라이언트는 저장된 여정 화면의 랭킹 판을
+    `GET /rankings`는 없어도 되는 API다. 서버가 `404`를 반환하면 클라이언트는 저장된 여정 화면의 랭킹 패널을
     숨긴다. 응답이 있지만 이 명세와 다르면(필드·타입이 다르거나 순위 결과가 틀리면) 클라이언트는
     오류 창을 띄우고 게임을 시작하지 않는다.
 
@@ -295,21 +295,21 @@ paths:
                 $ref: '#/components/schemas/RankingResponse'
               example:
                 season: '2026-09'
-                totalRecords: 198
-                excludedCount: 30
+                totalRecords: 610
+                excludedCount: 35
                 entries:
                   - rank: 1
-                    playerName: 재서기
+                    playerName: 먼상인
                     clearTimeSeconds: 300
                     remainingHp: 12
-                    bossTurns: 13
-                    deckSize: 18
+                    bossTurns: 15
+                    deckSize: 20
                   - rank: 2
-                    playerName: 안개칼날
-                    clearTimeSeconds: 863
-                    remainingHp: 74
-                    bossTurns: 12
-                    deckSize: 15
+                    playerName: 잿빛대장장이
+                    clearTimeSeconds: 1040
+                    remainingHp: 41
+                    bossTurns: 14
+                    deckSize: 19
 
 components:
   parameters:
@@ -508,7 +508,7 @@ components:
         playerName:
           type: string
           description: 플레이어 이름
-          example: 밤의 후계자
+          example: 먼상인
         currentFloor:
           type: integer
           description: 현재 층 (1~10)
@@ -535,7 +535,7 @@ components:
             FAILED: 도중에 HP가 0이 되어 실패했다.
         deckSize:
           type: integer
-          description: 저장된 덱의 카드 수. 목록 응답에만 있고 상세 응답에는 없다(덱 자체가 있으므로)
+          description: 저장된 덱의 카드 수
           example: 12
         createdAt:
           type: string
@@ -548,16 +548,56 @@ components:
 
     GameDetailResponse:
       title: 게임 상세
-      allOf:
-        - $ref: '#/components/schemas/GameSummaryResponse'
-        - type: object
-          required: [deck]
-          properties:
-            deck:
-              type: array
-              description: 카드 ID 오름차순 전체 덱
-              items:
-                $ref: '#/components/schemas/CardResponse'
+      type: object
+      description: 게임 요약의 필드에 전체 덱을 더한 응답. 카드 수는 `deck`의 길이로 알 수 있으므로 `deckSize`는 없다
+      required: [id, playerName, currentFloor, currentHp, phase, status, deck]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 게임의 고유 식별자
+          example: 12
+        playerName:
+          type: string
+          description: 플레이어 이름
+          example: 먼상인
+        currentFloor:
+          type: integer
+          description: 현재 층 (1~10)
+          example: 4
+        currentHp:
+          type: integer
+          description: 현재 HP (0~99)
+          example: 61
+        phase:
+          type: string
+          description: 게임이 멈춰 있는 단계
+          enum: [BATTLE, REWARD, FINISHED]
+          x-enumDescriptions:
+            BATTLE: 전투 중. 다시 불러오면 해당 층의 전투가 이어진다.
+            REWARD: 보상 카드를 고르는 중. 시작 직후와 각 전투 승리 뒤에 머문다.
+            FINISHED: 여정이 끝났다. status가 CLEARED 또는 FAILED다.
+        status:
+          type: string
+          description: 게임의 결과 상태
+          enum: [PLAYING, CLEARED, FAILED]
+          x-enumDescriptions:
+            PLAYING: 진행 중. 이어서 플레이할 수 있다.
+            CLEARED: 10층까지 모두 클리어했다.
+            FAILED: 도중에 HP가 0이 되어 실패했다.
+        createdAt:
+          type: string
+          description: 생성 시각. 서버 시간대 기준 ISO 8601 형식이며 시간대 표기는 없다. 소수점 초가 붙을 수 있다.
+          example: '2026-09-03T18:20:11'
+        updatedAt:
+          type: string
+          description: 마지막 저장 시각. 형식은 `createdAt`과 같다.
+          example: '2026-09-03T19:02:45'
+        deck:
+          type: array
+          description: 카드 ID 오름차순 전체 덱
+          items:
+            $ref: '#/components/schemas/CardResponse'
 
     RankingResponse:
       title: 랭킹 응답
@@ -571,11 +611,11 @@ components:
         totalRecords:
           type: integer
           description: 시즌에 제출된 전체 기록 수
-          example: 198
+          example: 610
         excludedCount:
           type: integer
           description: 이상 기록으로 판단되어 순위에서 뺀 기록 수
-          example: 30
+          example: 35
         entries:
           type: array
           description: 순위 오름차순 목록
@@ -594,7 +634,7 @@ components:
         playerName:
           type: string
           description: 플레이어 이름
-          example: 재서기
+          example: 먼상인
         clearTimeSeconds:
           type: integer
           description: 클리어까지 걸린 시간(초)
@@ -606,11 +646,11 @@ components:
         bossTurns:
           type: integer
           description: 최종 보스전에서 쓴 총 턴 수
-          example: 13
+          example: 15
         deckSize:
           type: integer
           description: 클리어 시점의 덱 카드 수
-          example: 18
+          example: 20
 
     ErrorResponse:
       title: 오류 응답
