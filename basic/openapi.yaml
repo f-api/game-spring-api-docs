@@ -34,6 +34,9 @@ info:
 
     ## 선택 기능
 
+    게임 요약의 `deckSize`, `createdAt`, `updatedAt`과 게임 상세의 `createdAt`, `updatedAt`은 선택 필드다.
+    없으면 클라이언트는 카드 수와 저장 시각 표시를 숨기고, 있으면 그대로 표시한다.
+
     `GET /rankings`는 없어도 되는 API다. 서버가 `404`를 반환하면 클라이언트는 저장된 여정 화면의 랭킹 패널을
     숨긴다. 응답이 있지만 이 명세와 다르면(필드·타입이 다르거나 순위 결과가 틀리면) 클라이언트는
     에러 창을 띄우고 게임을 시작하지 않는다.
@@ -508,7 +511,7 @@ components:
         playerName:
           type: string
           description: 플레이어 이름
-          example: 먼상인
+          example: 밤의 후계자
         currentFloor:
           type: integer
           description: 현재 층 (1~10)
@@ -560,7 +563,7 @@ components:
         playerName:
           type: string
           description: 플레이어 이름
-          example: 먼상인
+          example: 밤의 후계자
         currentFloor:
           type: integer
           description: 현재 층 (1~10)
