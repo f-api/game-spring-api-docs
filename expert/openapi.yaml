@@ -15,6 +15,7 @@ info:
     | `GET` | [`/worlds`](#tag/월드/operation/listWorlds) | `200` | 월드 목록 조회 |
     | `POST` | [`/worlds`](#tag/월드/operation/createWorld) | `201` | 월드 생성 |
     | `GET` | [`/worlds/{worldId}/chats`](#tag/채팅/operation/getRecentChats) | `200` | 최근 채팅 조회 |
+    | `GET` | [`/worlds/{worldId}/chats/history`](#tag/채팅/operation/getChatHistory) | `200` | 과거 채팅 커서 조회 |
     | `WS` | [`/ws/worlds/{worldId}`](#section/웹소켓-연결) | `101` | WebSocket 연결 |
 
     ## 오류 응답
@@ -305,6 +306,41 @@ paths:
         '404':
           $ref: '#/components/responses/WorldNotFound'
 
+  /worlds/{worldId}/chats/history:
+    parameters:
+      - $ref: '#/components/parameters/WorldId'
+    get:
+      tags: [채팅]
+      summary: 과거 채팅 커서 조회 (Lv 12)
+      operationId: getChatHistory
+      description: |
+        createdAt 내림차순, 같으면 id 내림차순으로 반환한다. 첫 요청에서는 커서를 생략한다.
+        다음 요청에는 응답의 nextCreatedAt과 nextId를 beforeCreatedAt과 beforeId로 함께 전달한다.
+        기존 최근 채팅 API와 달리 최신 메시지부터 반환하며, Lv 14 캐시 대상이 아니다.
+      parameters:
+        - name: beforeCreatedAt
+          in: query
+          schema: {type: string}
+          description: 서버 시각 ISO 8601 문자열. beforeId와 함께 전달한다.
+          example: '2026-07-16T12:30:00'
+        - name: beforeId
+          in: query
+          schema: {type: integer, format: int64}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+      responses:
+        '200':
+          description: 커서 기준 이전 기록과 다음 페이지 정보
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatHistoryPage'
+        '400':
+          description: 커서 쌍 누락, 잘못된 시각 또는 limit 범위 위반. error는 VALIDATION_FAILED
+        '404':
+          $ref: '#/components/responses/WorldNotFound'
+
   /practice/worlds/{worldId}/chats/rollback:
     parameters:
       - $ref: '#/components/parameters/WorldId'
@@ -314,7 +350,7 @@ paths:
       description: |
         `assignment-checks` 프로필에서만 등록되는 실습 API다. 채팅 저장 서비스를 호출한 뒤
         트랜잭션을 의도적으로 롤백한다. `204`를 받아도 채팅은 DB와 수신 화면에 남지 않아야 한다.
-        기본 실행에서는 이 경로가 등록되지 않는다. 실제 등록된 닉네임과 월드 ID를 사용한다.
+        캐시 무효화도 실행되지 않아야 한다. 기본 실행에서는 이 경로가 등록되지 않는다. 실제 등록된 닉네임과 월드 ID를 사용한다.
       operationId: checkChatRollback
       parameters:
         - name: nickname
@@ -467,6 +503,29 @@ components:
           type: string
           description: 저장 시각. 서버 시간대 기준 ISO 8601, 시간대 표기 없음
           example: '2026-07-16T12:30:00'
+
+    ChatHistoryPage:
+      type: object
+      required: [items, hasNext, nextCreatedAt, nextId]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, sender, content, createdAt]
+            properties:
+              id: {type: integer, format: int64}
+              sender: {type: string}
+              content: {type: string}
+              createdAt: {type: string}
+        hasNext: {type: boolean}
+        nextCreatedAt:
+          type: [string, 'null']
+          description: 다음 페이지가 있으면 마지막으로 반환한 메시지의 시각
+        nextId:
+          type: [integer, 'null']
+          format: int64
+          description: 다음 페이지가 있으면 마지막으로 반환한 메시지의 ID
 
     ErrorResponse:
       title: 오류 응답
