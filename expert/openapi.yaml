@@ -313,7 +313,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/RecentChatResponse'
+                  $ref: '#/components/schemas/ChatMessageResponse'
               example:
                 - sender: steve
                   content: 안녕하세요
@@ -512,7 +512,7 @@ components:
           enum: [easy, normal, hard]
           example: normal
 
-    RecentChatResponse:
+    ChatMessageResponse:
       title: 채팅 메시지
       type: object
       required: [sender, content, createdAt]
