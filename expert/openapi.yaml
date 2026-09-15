@@ -311,7 +311,7 @@ paths:
       - $ref: '#/components/parameters/WorldId'
     get:
       tags: [채팅]
-      summary: 과거 채팅 커서 조회 (Lv 12)
+      summary: 과거 채팅 커서 조회 (Lv 13)
       operationId: getChatHistory
       description: |
         createdAt 내림차순, 같으면 id 내림차순으로 반환한다. 첫 요청에서는 커서를 생략한다.
